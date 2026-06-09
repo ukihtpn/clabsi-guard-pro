@@ -958,7 +958,7 @@ select.pw-inp option{background:#1a1a2e;color:#fff}/* ── IMAGE ZOOM MODAL �
     <div class="modal-body" style="padding:20px">
       <div style="text-align:center;margin-bottom:18px">
         <div style="width:60px;height:60px;background:#fff3cd;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:28px">⏱</div>
-        <div style="font-family:'Montserrat',sans-serif;font-size:18px;font-weight:900;color:#111;text-transform:uppercase">Sedia untuk menjawab?</div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:18px;font-weight:900;color:#111;text-transform:uppercase">Ready to answer?</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
         <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;background:#fff5f5;border-radius:10px;border-left:4px solid var(--red)">
@@ -967,14 +967,14 @@ select.pw-inp option{background:#1a1a2e;color:#fff}/* ── IMAGE ZOOM MODAL �
         </div>
         <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;background:#fffbeb;border-radius:10px;border-left:4px solid var(--yellow)">
           <span style="font-size:16px;flex-shrink:0">⏱</span>
-          <span style="font-size:13px;color:#333;font-weight:600;line-height:1.5">You are given <strong>30 seconds</strong> to answer <strong>each question</strong>.</span>
+          <span style="font-size:13px;color:#333;font-weight:600;line-height:1.5">You are given <strong>120 seconds</strong> to answer <strong>each question</strong>.</span>
         </div>
         <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;background:#f0f6ff;border-radius:10px;border-left:4px solid #2980b9">
           <span style="font-size:16px;flex-shrink:0">⚠️</span>
           <span style="font-size:13px;color:#333;font-weight:600;line-height:1.5">Questions <strong>not answered</strong> when time runs out will be marked as <strong>incorrect</strong>.</span>
         </div>
       </div>
-      <div style="font-size:11px;color:#888;font-family:'Roboto Mono',monospace;font-weight:700;text-align:center">Pastikan anda bersedia sebelum memulakan</div>
+      <div style="font-size:11px;color:#888;font-family:'Roboto Mono',monospace;font-weight:700;text-align:center">Make sure you are ready before starting</div>
     </div>
     <div class="modal-foot" style="gap:10px">
       <button class="btn-cancel" onclick="cm('mod-quiz-remind')">Cancel</button>
@@ -1329,6 +1329,8 @@ function renderLogin(){
         <svg class="chev"><use href="#ic-chev"/></svg>
       </button>`;
   } else if(selRole==='admin'){
+    const coordRemPw=localStorage.getItem('cgp8:coordRemPw')||'';
+    const coordRemChecked=localStorage.getItem('cgp8:coordRemMe')==='1';
     b.innerHTML=`
       <div class="role-back red">
         <span>Login: Coordinator</span>
@@ -1337,9 +1339,19 @@ function renderLogin(){
       <label class="pw-lbl">Password</label>
       <div class="pw-wrap">
         <svg><use href="#ic-key"/></svg>
-        <input class="pw-inp" id="pw" type="password" autofocus placeholder="Coordinator password" onkeydown="if(event.key==='Enter')doLogin()">
+        <input class="pw-inp" id="pw" type="password" autofocus placeholder="Coordinator password" onkeydown="if(event.key==='Enter')doLogin()" value="${coordRemPw}">
       </div>
       <div class="pw-err" id="pw-err"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin:8px 2px 2px;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);cursor:pointer" onclick="toggleRemMeCoord(this)">
+        <input type="checkbox" id="rem-me-coord" onclick="event.stopPropagation();toggleRemMeCoord(this.parentElement)" style="width:16px;height:16px;cursor:pointer;accent-color:#c0392b;flex-shrink:0" ${coordRemChecked?'checked':''}>
+        <label id="rem-lbl-coord" for="rem-me-coord" onclick="event.stopPropagation()" style="font-size:12px;color:${coordRemChecked?'#c0392b':'rgba(255,255,255,.45)'};cursor:pointer;font-family:var(--font-mono);font-weight:700;flex:1">Remember my password</label>
+        <span id="rem-lock-coord" style="flex-shrink:0;display:flex;align-items:center">
+          ${coordRemChecked
+            ?`<svg style="width:20px;height:20px;color:#c0392b" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" fill="rgba(192,57,43,.2)" stroke="#c0392b"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#c0392b"/></svg>`
+            :`<svg style="width:20px;height:20px;color:rgba(255,255,255,.3)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0" stroke="rgba(255,255,255,.25)"/><line x1="17" y1="4" x2="17" y2="7" stroke="rgba(255,255,255,.25)"/></svg>`
+          }
+        </span>
+      </div>
       <button class="login-btn red" onclick="doLogin()">Log In</button>`;
     setTimeout(()=>{const i=document.getElementById('pw');if(i)i.focus();},80);
   } else {
@@ -1532,6 +1544,21 @@ async function doReset(){
   toast('Password updated successfully! Please log in. ✓');
   selRole='staff'; renderLogin();
 }
+function toggleRemMeCoord(container){
+  var cb=document.getElementById('rem-me-coord');
+  if(container.tagName!=='INPUT') cb.checked=!cb.checked;
+  var on=cb.checked;
+  container.style.borderColor=on?'#c0392b':'rgba(255,255,255,.08)';
+  container.style.background=on?'rgba(192,57,43,.1)':'rgba(255,255,255,.04)';
+  var lbl=document.getElementById('rem-lbl-coord');
+  if(lbl) lbl.style.color=on?'#c0392b':'rgba(255,255,255,.45)';
+  var iconWrap=document.getElementById('rem-lock-coord');
+  if(iconWrap){
+    iconWrap.innerHTML=on
+      ?'<svg style="width:20px;height:20px;color:#c0392b" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" fill="rgba(192,57,43,.2)" stroke="#c0392b"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#c0392b"/></svg>'
+      :'<svg style="width:20px;height:20px;color:rgba(255,255,255,.3)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0" stroke="rgba(255,255,255,.25)"/><line x1="17" y1="4" x2="17" y2="7" stroke="rgba(255,255,255,.25)"/></svg>';
+  }
+}
 async function toggleRemMe(container){
   var cb=document.getElementById('rem-me');
   // If called from container click, toggle checkbox
@@ -1555,8 +1582,17 @@ async function doLogin(){
   const pw=(document.getElementById('pw')||{}).value||'';
   const errEl=document.getElementById('pw-err');
   if(selRole==='admin'){
-    if(pw==='1234') enter('admin',null);
-    else{errEl.textContent='Wrong password.';return;}
+    if(pw==='Handhygiene25'){
+      const remCoord=document.getElementById('rem-me-coord');
+      if(remCoord&&remCoord.checked){
+        localStorage.setItem('cgp8:coordRemPw',pw);
+        localStorage.setItem('cgp8:coordRemMe','1');
+      } else {
+        localStorage.removeItem('cgp8:coordRemPw');
+        localStorage.setItem('cgp8:coordRemMe','0');
+      }
+      enter('admin',null);
+    } else{errEl.textContent='Wrong password.';return;}
   } else {
     const rid=(document.getElementById('staff-regid')||{}).value.trim().toUpperCase();
     if(!rid){errEl.textContent='Please enter your Register ID.';return;}
@@ -1880,7 +1916,7 @@ function renderContact(){
   el.innerHTML='<div style="padding:18px 16px 100px;max-width:600px;margin:0 auto">'
     +'<div style="margin-bottom:20px">'
     +'<div style="font-family:var(--font-head);font-size:18px;font-weight:900;color:#fff;text-transform:uppercase;line-height:1.2">Contact &amp; Info</div>'
-    +'<div style="font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.12em;margin-top:4px">Unit Kawalan Infeksi &middot; HTPN</div>'
+    +'<div style="font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.12em;margin-top:4px">Infection Prevention and Control Unit &middot; HTPN</div>'
     +'</div>'
     // ── About This App card ──
     +'<div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border:1px solid rgba(124,58,237,.25);border-radius:18px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden">'
@@ -1904,7 +1940,7 @@ function renderContact(){
     +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
     +'<div style="width:38px;height:38px;background:linear-gradient(135deg,#c0392b,#922b21);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+svg('ic-info-circle',18,18,'#fff')+'</div>'
     +'<div><div style="font-family:var(--font-head);font-size:14px;font-weight:900;color:#fff;text-transform:uppercase">Contact Us</div>'
-    +'<div style="font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">Unit Kawalan Infeksi (UKI) &mdash; HTPN</div></div>'
+    +'<div style="font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">Infection Prevention and Control Unit (UKI) &mdash; HTPN</div></div>'
     +'</div>'
     +'<a href="tel:1153" style="display:flex;align-items:center;gap:12px;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.25);border-radius:12px;padding:13px 15px;text-decoration:none;margin-bottom:10px">'
     +'<div style="width:36px;height:36px;background:rgba(192,57,43,.2);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg style="width:17px;height:17px;color:#e74c3c" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.72A2 2 0 012.18 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.35a16 16 0 006.72 6.72l1.71-1.71a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></div>'
@@ -3780,7 +3816,25 @@ function renderTraining(){
               <div id="nq-role-hint" style="margin-top:6px;font-size:10px;font-family:var(--font-mono);color:#e74c3c;font-weight:700">⚠ Sila pilih sekurang-kurangnya satu role</div>
               <input type="hidden" id="nq-role-val" value="">
             </div>
-            <input class="finput" id="nq-q" type="text" placeholder="Write question here...">
+            <div>
+              <div style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:#1a3a6e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Question</div>
+              <input class="finput" id="nq-q" type="text" placeholder="Write question here..." style="margin-bottom:0">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div>
+                <div style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:#1a3a6e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Evaluates</div>
+                <input class="finput" id="nq-evaluates" type="text" placeholder="e.g. Application of knowledge..." style="margin-bottom:0;font-size:11px">
+              </div>
+              <div>
+                <div style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:#1a3a6e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Difficulty</div>
+                <select class="finput" id="nq-difficulty" style="margin-bottom:0;font-size:11px">
+                  <option value="">-- Pilih --</option>
+                  <option value="Easy">Easy</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </div>
+            </div>
             <div style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:#1a3a6e;text-transform:uppercase;letter-spacing:.08em">Answer Options — Click to select correct answer</div>
             <div id="nq-opts-wrap" style="display:flex;flex-direction:column;gap:7px"></div>
             <button type="button" onclick="nqAddOption()"
@@ -4072,14 +4126,14 @@ function renderTraining(){
     const cur=quizState.currentQ;
     const pct=Math.round((cur/total)*100);
     const letters='ABCDEFGH'.split('');
-    const col=quizTimeLeft<=10?'#c0392b':quizTimeLeft<=20?'#f39c12':'#27ae60';
+    const col=quizTimeLeft<=15?'#c0392b':quizTimeLeft<=30?'#f39c12':'#27ae60';
     const circ=2*Math.PI*34;
-    const ringOffset=circ*(1-(quizTimeLeft/30));
+    const ringOffset=circ*(1-(quizTimeLeft/120));
     document.getElementById('pg-training').innerHTML=`
       <div style="background:#111;border-radius:16px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div style="flex:1">
           <div style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Module ${quizState.moduleNum} — Quiz</div>
-          <div style="font-family:var(--font-head);font-size:16px;font-weight:900;color:#fff">Soalan ${cur+1} / ${total}</div>
+          <div style="font-family:var(--font-head);font-size:16px;font-weight:900;color:#fff">Question ${cur+1} / ${total}</div>
         </div>
         <!-- Per-question timer ring — bigger -->
         <div style="position:relative;width:80px;height:80px;flex-shrink:0">
@@ -4097,13 +4151,17 @@ function renderTraining(){
       </div>
       ${quizTimeLeft<=10?`<div style="padding:9px 14px;background:#fee2e2;border-radius:10px;border-left:4px solid #c0392b;display:flex;align-items:center;gap:8px">
         <span style="font-size:15px">⚠️</span>
-        <span style="font-size:12px;font-weight:700;color:#922b21;font-family:var(--font-mono)">Masa hampir tamat! Jawab sekarang atau soalan ini dianggap salah.</span>
+        <span style="font-size:12px;font-weight:700;color:#922b21;font-family:var(--font-mono)">Masa hampir tamat! Jawab sekarang atau this question will be marked incorrect.</span>
       </div>`:''}
       <div style="background:#333;border-radius:99px;height:5px;overflow:hidden">
         <div style="height:100%;background:var(--yellow);border-radius:99px;width:${pct}%;transition:width .3s"></div>
       </div>
       <div style="background:#fff;border-radius:16px;padding:20px">
-        <div style="font-size:16px;font-weight:700;color:#111;line-height:1.5;margin-bottom:20px">${cur+1}. ${q.question}</div>
+        <div style="font-size:16px;font-weight:700;color:#111;line-height:1.5;margin-bottom:${(q.evaluates||q.difficulty)?'10px':'20px'}">${cur+1}. ${q.question}</div>
+        ${(q.evaluates||q.difficulty)?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center">
+          ${q.evaluates?`<span style="font-size:13px;padding:6px 14px;border-radius:20px;background:#f0f6ff;border:1.5px solid #dbeafe;color:#1e40af;font-family:var(--font-mono);font-weight:700;line-height:1.4">📋 ${q.evaluates}</span>`:''}
+          ${q.difficulty?`<span style="font-size:13px;padding:6px 14px;border-radius:20px;font-family:var(--font-mono);font-weight:700;line-height:1.4;background:${q.difficulty==='Easy'?'#f0fdf4':q.difficulty==='Moderate'?'#fef9c3':'#fef2f2'};border:1.5px solid ${q.difficulty==='Easy'?'#86efac':q.difficulty==='Moderate'?'#fde047':'#fca5a5'};color:${q.difficulty==='Easy'?'#166534':q.difficulty==='Moderate'?'#78350f':'#b91c1c'}">${q.difficulty==='Easy'?'🟢':q.difficulty==='Moderate'?'🟡':'🔴'} ${q.difficulty}</span>`:''}
+        </div>`:''}
         <div style="display:flex;flex-direction:column;gap:10px">
           ${(q.options||[]).map((opt,oi)=>`
           <button onclick="answerQuiz(${oi})"
@@ -4154,7 +4212,7 @@ function renderTraining(){
         <div style="margin-top:12px;display:inline-flex;align-items:center;gap:8px;background:${passed?'rgba(0,0,0,.2)':'rgba(255,255,255,.15)'};padding:8px 18px;border-radius:99px">
           <span style="font-family:var(--font-head);font-size:14px;font-weight:900;text-transform:uppercase">${passed?'✓ PASSED':'✗ NOT PASSED'}</span>
         </div>
-        <div style="font-family:var(--font-mono);font-size:11px;margin-top:8px;opacity:.7">${passed?'Tahniah! Anda lulus Modul '+moduleNum:timedOut?'Masa tamat. Soalan tidak dijawab dianggap salah.':'Skor minimum 90%. Sila ulang selepas tonton semula video.'}</div>
+        <div style="font-family:var(--font-mono);font-size:11px;margin-top:8px;opacity:.7">${passed?'Tahniah! Anda lulus Modul '+moduleNum:timedOut?'Masa tamat. Unanswered questions are marked incorrect.':'Skor minimum 90%. Sila ulang selepas tonton semula video.'}</div>
       </div>
 
       ${passed&&allPassed?`
@@ -5361,17 +5419,17 @@ function playTimeUp(){
 
 function startQuestionTimer(){
   clearInterval(quizTimerInterval);
-  quizTimeLeft=30;
+  quizTimeLeft=120;
   quizTimerInterval=setInterval(()=>{
     quizTimeLeft--;
-    const col=quizTimeLeft<=10?'#c0392b':quizTimeLeft<=20?'#f39c12':'#27ae60';
+    const col=quizTimeLeft<=15?'#c0392b':quizTimeLeft<=30?'#f39c12':'#27ae60';
     if(quizTimeLeft>0) playTick(quizTimeLeft<=10);
     const el=document.getElementById('quiz-timer');
     const ring=document.getElementById('quiz-timer-ring');
     if(el){el.textContent=quizTimeLeft;el.style.color=col;}
     if(ring){
       const circ=2*Math.PI*34;
-      ring.style.strokeDashoffset=circ*(1-(quizTimeLeft/30));
+      ring.style.strokeDashoffset=circ*(1-(quizTimeLeft/120));
       ring.style.stroke=col;
     }
     if(quizTimeLeft<=0){
@@ -5728,7 +5786,9 @@ function setQbankModule(moduleNum){
       +'<div style="display:flex;flex-direction:column;gap:3px">'+(q.options||[]).map(function(o,oi){
         var correct=oi===q.correctIndex;
         return '<span style="font-size:11px;font-family:var(--font-mono);padding:3px 7px;border-radius:5px;font-weight:700;background:'+(correct?'#f0fdf4':'#f9fafb')+';color:'+(correct?'#166534':'#666')+';border:1px solid '+(correct?'#86efac':'#e5e7eb')+'">'+(['A','B','C','D','E','F','G','H'][oi]||oi+1)+'. '+o+(correct?' ✓':'')+'</span>';
-      }).join('')+'</div></div>'
+      }).join('')+'</div>'
+      +(q.evaluates||q.difficulty?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'        +(q.evaluates?'<span style="font-size:10px;padding:2px 8px;border-radius:5px;background:#f0f6ff;border:1px solid #dbeafe;color:#1e40af;font-family:var(--font-mono);font-weight:700">&#128203; '+q.evaluates+'</span>':'')        +(q.difficulty?(function(d){var bg=d==='Easy'?'#f0fdf4':d==='Moderate'?'#fef9c3':'#fef2f2';var bc=d==='Easy'?'#86efac':d==='Moderate'?'#fde047':'#fca5a5';var col=d==='Easy'?'#166534':d==='Moderate'?'#78350f':'#b91c1c';var icon=d==='Easy'?'&#x1F7E2;':d==='Moderate'?'&#x1F7E1;':'&#x1F534;';return '<span style="font-size:10px;padding:2px 8px;border-radius:5px;font-family:var(--font-mono);font-weight:700;background:'+bg+';border:1px solid '+bc+';color:'+col+'">'+icon+' '+d+'</span>';})(q.difficulty):'')        +'</div>':'')
+      +'</div>'
       +'<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">'
       +'<button onclick="openEditQuestion(\''+(q._fsId||q.id)+'\')" style="width:28px;height:28px;background:#dbeafe;border-radius:7px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center">'+svg('ic-edit',11,11,'#2563eb')+'</button>'
       +'<button onclick="delQuestion(\''+(q._fsId||q.id)+'\')" style="width:28px;height:28px;background:#fee2e2;border-radius:7px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center">'+svg('ic-trash',11,11,'#c0392b')+'</button>'
@@ -5822,16 +5882,20 @@ async function saveQuestion(){
   const targetRole=roleEl?roleEl.value:'';
   if(!targetRole)return toast('Sila pilih sekurang-kurangnya satu role.','err');
   const correctIndex=nqCorrect;
+  const evaluates=(document.getElementById('nq-evaluates')||{value:''}).value.trim();
+  const difficulty=(document.getElementById('nq-difficulty')||{value:''}).value;
   const id='q'+Date.now();
-  const item={id,moduleNum,question,options:opts,correctIndex,targetRole,createdAt:Date.now()};
+  const item={id,moduleNum,question,options:opts,correctIndex,targetRole,evaluates,difficulty,createdAt:Date.now()};
   if(fb){ await fsSet('questions',id,{...item,createdAt:fb.serverTimestamp()}); }
   fsQuestions=[...fsQuestions,item];
   document.getElementById('nq-q').value='';
+  var evEl=document.getElementById('nq-evaluates'); if(evEl) evEl.value='';
+  var dfEl=document.getElementById('nq-difficulty'); if(dfEl) dfEl.value='';
   _nqSelectedRoles=[];
   nqUpdateRoleUI();
   nqReset();
   const roleLabel={SN:'Staff Nurse',MO:'MO',HO:'House Officer',MO_HO:'MO + HO',SN_MO:'SN + MO',SN_HO:'SN + HO',all:'Semua Role'};
-  toast('Soalan disimpan ✓ ('+( roleLabel[targetRole]||targetRole)+')');
+  toast('Question disimpan ✓ ('+( roleLabel[targetRole]||targetRole)+')');
   window._coordTab='quiz';
   renderTraining();
   // Navigate to first selected role tab
@@ -5881,7 +5945,7 @@ async function delQuestion(id){
     _deletedQuestionIds.add(fsId);
     try{localStorage.setItem('cgp8:deleted_qids',JSON.stringify([..._deletedQuestionIds]));}catch(e){}
     fsQuestions=fsQuestions.filter(x=>String(x._fsId||x.id)!==fsId);
-    toast('Soalan dipadam dari '+currentRole+'.','err');
+    toast('Question dipadam dari '+currentRole+'.','err');
   } else {
     // Soalan dikongsi beberapa role — buang current role sahaja, role lain kekal
     const remaining=rolesInQ.filter(r=>r!==currentRole);
@@ -5901,7 +5965,7 @@ async function delQuestion(id){
     // Untuk hardcoded: JANGAN masuk _deletedQuestionIds — kita nak soalan kekal untuk role lain
     // Firestore listener akan pick up versi baru dengan targetRole yang updated
     fsQuestions=fsQuestions.map(x=>String(x._fsId||x.id)===fsId?{...updated,_fsId:x._fsId||fsId}:x);
-    toast('Soalan dibuang dari '+currentRole+' — role lain kekal ✓','err');
+    toast('Question dibuang dari '+currentRole+' — role lain kekal ✓','err');
   }
 
   var role=_qbankRole||'SN', mod=_qbankModule;
@@ -5940,7 +6004,7 @@ function openEditQuestion(id){
     <div style="background:${curBg};border:1.5px solid ${curColor};border-radius:10px;padding:9px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
       <div style="width:8px;height:8px;border-radius:50%;background:${curColor};flex-shrink:0"></div>
       <div>
-        <div style="font-size:9px;color:#666;font-family:'Roboto Mono',monospace;font-weight:700;text-transform:uppercase;letter-spacing:.07em">Soalan ini sekarang untuk</div>
+        <div style="font-size:9px;color:#666;font-family:'Roboto Mono',monospace;font-weight:700;text-transform:uppercase;letter-spacing:.07em">This question is currently for</div>
         <div style="font-size:12px;font-weight:900;color:${curColor};font-family:'Roboto Mono',monospace;text-transform:uppercase">${curLabel}</div>
       </div>
     </div>
@@ -6080,7 +6144,7 @@ async function saveQuestionEdit(){
   else fsQuestions=[...fsQuestions,{...updated,_fsId:fsId}];
   cm('mod-question');
   const roleLabel={SN:'Staff Nurse',MO:'MO',HO:'HO',MO_HO:'MO+HO',SN_MO:'SN+MO',SN_HO:'SN+HO',all:'Semua Role'};
-  toast('Soalan dikemaskini ✓ ('+(roleLabel[targetRole]||targetRole)+')');
+  toast('Question dikemaskini ✓ ('+(roleLabel[targetRole]||targetRole)+')');
   var role=_qbankRole||'SN', mod=_qbankModule;
   renderTraining();
   setTimeout(function(){setQbankTab(role);if(mod) setTimeout(function(){setQbankModule(mod);},60);},80);
