@@ -5319,7 +5319,8 @@ function getQuizQuestions(moduleNum){
   const isHO=role==='HO';
   return src.filter(q=>{
     if(Number(q.moduleNum)!==Number(moduleNum)) return false;
-    const tr=q.targetRole||'all';
+    const tr=q.targetRole||'';
+    if(!tr) return false;
     if(tr==='all') return true;
     if(tr==='SN') return isSN;
     if(tr==='MO') return isMO;
@@ -5327,7 +5328,7 @@ function getQuizQuestions(moduleNum){
     if(tr==='MO_HO') return isMO||isHO;
     if(tr==='SN_MO') return isSN||isMO;
     if(tr==='SN_HO') return isSN||isHO;
-    return true;
+    return false;
   });
 }
 
