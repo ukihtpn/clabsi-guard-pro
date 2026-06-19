@@ -1401,6 +1401,22 @@ function renderLogin(){
 function setRole(r){selRole=r;renderLogin();}
 
 // ── STAFF SELF REGISTRATION ───────────────────────────
+function autoGenerateRegisterId(role){
+  const prefix=role==='Staff Nurse'?'SN':role==='HO'?'HO':'MO';
+  const allStaff=staff();
+  const used=new Set();
+  allStaff.forEach(function(s){
+    const rid=s.registerId||'';
+    if(rid.toUpperCase().startsWith(prefix)){
+      const num=parseInt(rid.slice(prefix.length));
+      if(!isNaN(num)&&num>0) used.add(num);
+    }
+  });
+  let n=1;
+  while(used.has(n)) n++;
+  return prefix+n;
+}
+
 function showRegister(){
   const b=document.getElementById('login-body');
   b.innerHTML=`
@@ -1408,21 +1424,7 @@ function showRegister(){
       <span>Register New Account</span>
       <button onclick="selRole='staff';renderLogin()">Back</button>
     </div>
-    <label class="pw-lbl">No. ID / Register ID *</label>
-    <div class="pw-wrap">
-      <svg><use href="#ic-users"/></svg>
-      <input class="pw-inp" id="reg-id" type="text" placeholder="e.g. SN1 / MO2 / HO3" style="text-transform:uppercase" oninput="autoFormatRegId(this)">
-    </div>
-    <div style="font-size:10px;color:#888;margin:-6px 0 3px 4px">Format: SN1 / MO1 / HO1</div>
-    <a href="https://docs.google.com/spreadsheets/d/1TpbjkWpIwu9GTdlxS6w7yeif407deXIXH1nvU7oJsaM/edit?usp=sharing" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:7px;background:rgba(52,168,83,.12);border:1px solid rgba(52,168,83,.35);border-radius:9px;padding:9px 12px;margin-bottom:10px;text-decoration:none;transition:.15s" onmouseover="this.style.background='rgba(52,168,83,.22)'" onmouseout="this.style.background='rgba(52,168,83,.12)'">
-      <svg style="width:16px;height:16px;flex-shrink:0" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="#34a853"/><path d="M7 8h10M7 12h10M7 16h6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <div style="flex:1">
-        <div style="font-size:11px;font-weight:700;color:#34a853;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em">📋 Click here to check your Register ID</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:1px;font-family:var(--font-mono)">Opens Google Sheets — Staff ID List</div>
-      </div>
-      <svg style="width:13px;height:13px;color:rgba(255,255,255,.4);flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-    </a>
-    <label class="pw-lbl" style="margin-top:4px">Full Name *</label>
+    <label class="pw-lbl">Full Name *</label>
     <div class="pw-wrap">
       <svg><use href="#ic-users"/></svg>
       <input class="pw-inp" id="reg-name" type="text" placeholder="Full Name (as per IC)" oninput="autoFormatName(this)">
@@ -1437,6 +1439,11 @@ function showRegister(){
     <div class="pw-wrap">
       <svg><use href="#ic-users"/></svg>
       <input class="pw-inp" id="reg-email" type="email" placeholder="name@hospital.gov.my">
+    </div>
+    <label class="pw-lbl" style="margin-top:4px">No. Phone * <span style="color:#888;font-weight:400">(for booking confirmation)</span></label>
+    <div class="pw-wrap">
+      <svg><use href="#ic-phone"/></svg>
+      <input class="pw-inp" id="reg-phone" type="tel" placeholder="e.g. 012-3456789" maxlength="15" oninput="this.value=this.value.replace(/[^0-9\-+]/g,'')">
     </div>
     <label class="pw-lbl" style="margin-top:4px">Position / Role</label>
     <select class="pw-inp" id="reg-role" style="padding-left:13px">
@@ -1455,36 +1462,71 @@ function showRegister(){
       <input class="pw-inp" id="reg-pw2" type="password" placeholder="Re-enter password" maxlength="20" autocomplete="new-password">
     </div>
     <div style="background:#fffbe6;border:1px solid #f0c040;border-radius:10px;padding:10px 13px;margin:10px 0 4px;font-size:11px;color:#7a5c00;line-height:1.6">
-      ⚠️ <strong>Important:</strong> Please ensure your <strong>full name</strong> and <strong>IC number</strong> are entered correctly. These details will appear on your <strong>Certificate of Competency</strong> upon completion of the training programme and <strong>cannot be changed later</strong>.
+      ⚠️ <strong>Important:</strong> Please ensure your <strong>full name</strong> and <strong>IC number</strong> are entered correctly. These details will appear on your <strong>Certificate of Competency</strong> and <strong>cannot be changed later</strong>.
     </div>
     <div class="pw-err" id="reg-err"></div>
     <button class="login-btn green" onclick="doRegister()" style="margin-top:8px">Register Now</button>`;
 }
 
 async function doRegister(){
-  const rid=document.getElementById('reg-id').value.trim().toUpperCase();
   const name=document.getElementById('reg-name').value.trim();
   const ic=document.getElementById('reg-ic').value.trim();
   const email=document.getElementById('reg-email').value.trim();
+  const phone=(document.getElementById('reg-phone')||{value:''}).value.trim();
   const role=document.getElementById('reg-role').value;
   const pw=document.getElementById('reg-pw').value;
   const pw2=document.getElementById('reg-pw2').value;
   const errEl=document.getElementById('reg-err');
-  if(!rid||!name||!ic||!email||!pw){errEl.textContent='Please fill in all required fields (*)';return;}
+  if(!name||!ic||!email||!phone||!pw){errEl.textContent='Please fill in all required fields (*)';return;}
   if(!/^\d{12}$/.test(ic)){errEl.textContent='IC number must be exactly 12 digits (no dash or spaces)';return;}
+  if(phone.replace(/\D/g,'').length<9){errEl.textContent='Please enter a valid phone number (min. 9 digits).';return;}
   if(pw.length<4){errEl.textContent='Password must be at least 4 characters';return;}
   if(pw!==pw2){errEl.textContent='Passwords do not match';return;}
   if(!/\S+@\S+\.\S+/.test(email)){errEl.textContent='Invalid email format';return;}
-  // Check duplicate
+
+  // Fetch latest staff from Firestore before generating ID (avoid duplicates)
+  if(fb){
+    try{
+      const snap=await fb.getDocs(fb.collection(fb.db,'staff'));
+      const fresh=snap.docs.map(d=>({...d.data(),_fsId:d.id}));
+      if(fresh.length){fsStaff=fresh;localStaff=fresh;localStorage.setItem('cgp8:staff',JSON.stringify(fresh));}
+    }catch(e){}
+  }
+
+  // Check duplicate IC
   const allStaff=staff();
-  if(allStaff.find(s=>s.registerId&&s.registerId.toUpperCase()===rid)){errEl.textContent='This Register ID already exists';return;}
+  if(allStaff.find(s=>s.ic&&s.ic===ic)){errEl.textContent='An account with this IC number already exists.';return;}
+
+  // Auto-generate Register ID based on role + lowest unused number
+  const rid=autoGenerateRegisterId(role);
+
   const id='s'+Date.now();
-  const newStaff={id,name,role,registerId:rid,ic,email,gmail:email,theory:0,practical:'Pending',status:'Not Started',password:pw,createdAt:Date.now()};
+  const newStaff={id,name,role,registerId:rid,ic,email,gmail:email,phone,theory:0,practical:'Pending',status:'Not Started',password:pw,createdAt:Date.now()};
   if(fb){await fsSet('staff',id,{...newStaff,createdAt:fb.serverTimestamp()});}
   localStaff=[...localStaff,newStaff];
   localStorage.setItem('cgp8:staff',JSON.stringify(localStaff));
-  toast('Account registered successfully! Please log in. ✓');
-  selRole='staff'; renderLogin();
+
+  // Show success screen with generated Register ID
+  const roleLabel=role==='Staff Nurse'?'Staff Nurse':role==='HO'?'House Officer':'Medical Officer';
+  const b=document.getElementById('login-body');
+  b.innerHTML=`
+    <div style="background:linear-gradient(135deg,#1a5c35,#27ae60);border-radius:16px;padding:20px;text-align:center;margin-bottom:12px">
+      <div style="font-size:36px;margin-bottom:8px">✅</div>
+      <div style="font-family:var(--font-head);font-size:16px;font-weight:900;color:#fff;text-transform:uppercase;margin-bottom:4px">Registration Successful!</div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,.7);margin-bottom:16px">${name} · ${roleLabel}</div>
+      <div style="background:rgba(0,0,0,.25);border-radius:12px;padding:16px;margin-bottom:12px">
+        <div style="font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px">Your Register ID (Username)</div>
+        <div style="font-family:var(--font-head);font-size:42px;font-weight:900;color:#f1c40f;letter-spacing:.1em;line-height:1">${rid}</div>
+      </div>
+      <div style="background:rgba(241,196,15,.18);border:1.5px solid rgba(241,196,15,.5);border-radius:10px;padding:11px 13px;text-align:left">
+        <div style="font-family:var(--font-mono);font-size:11px;color:#f1c40f;font-weight:900;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">⚠️ SAVE THIS ID — IMPORTANT!</div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:#fff;font-weight:700;line-height:1.6">
+          Use <strong style="color:#f1c40f;font-size:14px">${rid}</strong> as your <strong>username</strong> every time you log in.<br>
+          <span style="color:rgba(255,255,255,.65);font-size:10px">Screenshot or write this down before proceeding.</span>
+        </div>
+      </div>
+    </div>
+    <button class="login-btn green" onclick="selRole='staff';renderLogin()" style="margin-top:4px">← Proceed to Login</button>`;
 }
 
 // ── RESET PASSWORD ────────────────────────────────────
