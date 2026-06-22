@@ -1810,8 +1810,19 @@ function enter(role,staffObj){
           var rid=normalizeRid(ridRaw);
           var ridOrig=String(ridRaw).trim().toUpperCase();
           if(!rid) return;
-          var tca=toMs(data[rid+'_theoryCompletedAt'])||toMs(data[ridOrig+'_theoryCompletedAt'])||0;
-          fsQRCache[rid]={updatedAt:toMs(data.updatedAt),theoryCompletedAt:tca};
+          // Check all possible key formats for theoryCompletedAt
+          var tca=toMs(data[rid+'_theoryCompletedAt'])
+            ||toMs(data[ridOrig+'_theoryCompletedAt'])
+            ||toMs(data['theoryCompletedAt'])
+            ||0;
+          // If no theoryCompletedAt found but all 4 modules scored — use updatedAt
+          var allMods=[1,2,3,4].every(function(n){
+            return (Number(data[rid+'_m'+n])||Number(data[ridOrig+'_m'+n])||0)>=90;
+          });
+          fsQRCache[rid]={
+            updatedAt:toMs(data.updatedAt),
+            theoryCompletedAt:tca||(allMods?toMs(data.updatedAt):0)
+          };
           if(ridOrig!==rid) fsQRCache[ridOrig]=fsQRCache[rid];
         });
         if(activeTab==='dashboard') _rd();
@@ -2443,7 +2454,9 @@ function renderDashboard(){
   else{trnPct=0;trnColor='red';trnLabel='NOT STARTED';trnBarColor='#c0392b';}
 
   // ── Theory completion date & earliest booking date ──
-  const _theoryCompletedAt=_ridDash?(toMs(_qrDash[_ridDash+'_theoryCompletedAt'])||toMs(loggedInStaff._theoryCompletedAt)||0):0;
+  const _ridDashOrig=loggedInStaff?String(loggedInStaff.registerId||'').trim().toUpperCase():'';
+  const _fsQRDash=fsQRCache[_ridDash]||fsQRCache[_ridDashOrig]||{};
+  const _theoryCompletedAt=_ridDash?(toMs(_qrDash[_ridDash+'_theoryCompletedAt'])||toMs(_qrDash[_ridDashOrig+'_theoryCompletedAt'])||toMs(loggedInStaff._theoryCompletedAt)||toMs(_fsQRDash.theoryCompletedAt)||toMs(_fsQRDash.updatedAt)||0):0;
   const _theoryCompletedStr=_theoryCompletedAt?new Date(_theoryCompletedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
   const _earliestBookDate=_theoryCompletedAt?new Date(_theoryCompletedAt+(7*24*60*60*1000)):null;
   const _earliestBookStr=_earliestBookDate?_earliestBookDate.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
@@ -2874,10 +2887,12 @@ function renderDashboard(){
             ${filt.length?filt.map(s=>{
               const _qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
               const _rid=normalizeRid(s.registerId||'');
-              const _qrCacheEntry=_rid?(fsQRCache[_rid]||{}):{};
+              const _ridOrig=String(s.registerId||'').trim().toUpperCase();
+              // Check both normalized and original key in fsQRCache
+              const _qrCacheEntry=_rid?(fsQRCache[_rid]||fsQRCache[_ridOrig]||{}):{};
               // Coordinator: prioritize Firestore quizResults (theoryCompletedAt → updatedAt) over localStorage
               const _fsTheoryDate=toMs(_qrCacheEntry.theoryCompletedAt)||toMs(_qrCacheEntry.updatedAt)||0;
-              const _localTheoryDate=_rid?toMs(_qr[_rid+'_theoryCompletedAt']||s._theoryCompletedAt||0):0;
+              const _localTheoryDate=_rid?(toMs(_qr[_rid+'_theoryCompletedAt'])||toMs(_qr[_ridOrig+'_theoryCompletedAt'])||toMs(s._theoryCompletedAt)||0):0;
               const _tca=_fsTheoryDate||_localTheoryDate||0;
               const _tcaStr=_tca?new Date(_tca).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
               const _lastLogin=_rid?(parseInt(localStorage.getItem('cgp8:lastlogin_'+_rid)||'0')||toMs(s.lastLoginAt)||0):0;
