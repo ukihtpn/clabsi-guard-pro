@@ -132,20 +132,35 @@ a{text-decoration:none}
 .hero-bar{height:100%;background:var(--yellow);border-radius:99px;transition:width 1.2s ease}
 
 /* ── STAT CARDS ── */
-.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.stat{background:#fff;border-radius:14px;padding:14px;border-top:4px solid #ddd}
-.stat.s-black{border-top-color:#111}
-.stat.s-green{border-top-color:var(--green)}
-.stat.s-yellow{border-top-color:var(--yellow)}
-.stat.s-red{border-top-color:var(--red)}
-.stat-ico{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
-.stat-ico svg{width:18px;height:18px}
-.stat-ico.black{background:#111}
-.stat-ico.green{background:var(--green)}
-.stat-ico.yellow{background:var(--yellow)}
-.stat-ico.red{background:var(--red)}
-.stat-val{font-size:42px;font-weight:900;color:#111;line-height:1;font-family:var(--font-head)}
-.stat-lbl{font-size:12px;font-weight:800;color:#111;text-transform:uppercase;letter-spacing:.08em;margin-top:6px;font-family:var(--font-head)}
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.stats-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.stat{background:#fff;border-radius:20px;padding:16px 18px;border:1.5px solid #f0f0f0;box-shadow:0 2px 12px rgba(0,0,0,.06);display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;transition:.2s}
+.stat:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.stat-icon-3d{width:70px;height:70px;border-radius:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:30px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.stat-icon-3d.black{background:linear-gradient(135deg,#2d2d2d,#111)}
+.stat-icon-3d.green{background:linear-gradient(135deg,#2ecc71,#1a9b4e)}
+.stat-icon-3d.yellow{background:linear-gradient(135deg,#f9ca24,#e0a800)}
+.stat-icon-3d.blue{background:linear-gradient(135deg,#4facfe,#2980b9)}
+.stat-icon-3d.orange{background:linear-gradient(135deg,#fd9644,#e67e22)}
+.stat-icon-3d.red{background:linear-gradient(135deg,#e74c3c,#c0392b)}
+.stat-right{flex:1;min-width:0}
+.stat-val2{font-size:36px;font-weight:900;line-height:1;font-family:var(--font-head)}
+.stat-val2.black{color:#111}
+.stat-val2.green{color:#1a9b4e}
+.stat-val2.yellow{color:#c8860a}
+.stat-val2.blue{color:#2980b9}
+.stat-val2.orange{color:#e67e22}
+.stat-val2.red{color:#c0392b}
+.stat-lbl2{font-size:11px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;margin-top:3px;font-family:var(--font-head)}
+.stat-bar-wrap{height:6px;background:#f0f0f0;border-radius:99px;margin-top:8px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:99px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.stat-frac{font-size:10px;font-family:var(--font-mono);font-weight:700;color:#aaa;margin-top:3px}
+/* OSCE card spans full width */
+.stat-osce-full{grid-column:1/-1;flex-direction:row}
+@keyframes pulse-osce{0%,100%{box-shadow:0 2px 12px rgba(192,57,43,.15)}50%{box-shadow:0 6px 28px rgba(192,57,43,.45)}}
+@keyframes float-doc{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-5px) rotate(4deg)}}
+.stat-osce-anim{animation:pulse-osce 2.2s ease-in-out infinite}
+.stat-osce-icon{font-size:26px;animation:float-doc 2.8s ease-in-out infinite;display:inline-block;position:absolute;right:18px;bottom:14px;opacity:.6}
 
 /* ── PERFORMANCE BARS ── */
 .perf-item{margin-bottom:16px}
@@ -1409,7 +1424,8 @@ function renderLogin(){
       <label class="pw-lbl">Password</label>
       <div class="pw-wrap">
         <svg><use href="#ic-key"/></svg>
-        <input class="pw-inp" id="pw" type="password" autofocus placeholder="Coordinator password" onkeydown="if(event.key==='Enter')doLogin()" value="${coordRemPw}">
+        <input class="pw-inp" id="pw" type="password" autofocus placeholder="Coordinator password" onkeydown="if(event.key==='Enter')doLogin()" value="${coordRemPw}" style="padding-right:40px">
+        <button type="button" onclick="var i=document.getElementById('pw');i.type=i.type==='password'?'text':'password';this.innerHTML=i.type==='password'?'👁':'🙈'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:4px;color:#888">👁</button>
       </div>
       <div class="pw-err" id="pw-err"></div>
       <div style="display:flex;align-items:center;gap:8px;margin:8px 2px 2px;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);cursor:pointer" onclick="toggleRemMeCoord(this)">
@@ -1443,7 +1459,8 @@ function renderLogin(){
       <label class="pw-lbl" style="margin-top:6px">Password</label>
       <div class="pw-wrap">
         <svg><use href="#ic-key"/></svg>
-        <input class="pw-inp" id="pw" type="password" placeholder="4 characters" maxlength="20" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" value="${remPw}">
+        <input class="pw-inp" id="pw" type="password" placeholder="4 characters" maxlength="20" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" value="${remPw}" style="padding-right:40px">
+        <button type="button" onclick="var i=document.getElementById('pw');i.type=i.type==='password'?'text':'password';this.innerHTML=i.type==='password'?'👁':'🙈'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:4px;color:#888">👁</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin:8px 2px 2px;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);cursor:pointer" onclick="toggleRemMe(this)">
         <input type="checkbox" id="rem-me" onclick="event.stopPropagation();toggleRemMe(this.parentElement)" style="width:16px;height:16px;cursor:pointer;accent-color:#27ae60;flex-shrink:0" ${remChecked?'checked':''}>
@@ -1783,7 +1800,7 @@ function enter(role,staffObj){
   } else {
     go('dashboard');
     toast('Welcome, '+displayName+'!');
-    // Coordinator: batch-fetch quizResults to get accurate theory dates
+    // Coordinator: batch-fetch quizResults + slots for accurate theory dates & OSCE bookings
     if(fb){
       fb.getDocs(fb.collection(fb.db,'quizResults')).then(function(snap){
         fsQRCache={};
@@ -1793,15 +1810,19 @@ function enter(role,staffObj){
           var rid=normalizeRid(ridRaw);
           var ridOrig=String(ridRaw).trim().toUpperCase();
           if(!rid) return;
-          // Check theoryCompletedAt with both normalized and original key
           var tca=toMs(data[rid+'_theoryCompletedAt'])||toMs(data[ridOrig+'_theoryCompletedAt'])||0;
-          fsQRCache[rid]={
-            updatedAt:toMs(data.updatedAt),
-            theoryCompletedAt:tca
-          };
-          // Also store under original key in case lookup uses old format
+          fsQRCache[rid]={updatedAt:toMs(data.updatedAt),theoryCompletedAt:tca};
           if(ridOrig!==rid) fsQRCache[ridOrig]=fsQRCache[rid];
         });
+        if(activeTab==='dashboard') _rd();
+      }).catch(function(){});
+      // Also fetch slots so OSCE booking dates show in dashboard
+      fb.getDocs(fb.collection(fb.db,'slots')).then(function(snap){
+        var fsSlotList=snap.docs.map(function(d){return Object.assign({},d.data(),{_fsId:d.id});});
+        if(fsSlotList.length){
+          fsSlots=fsSlotList;
+          localStorage.setItem('cgp8:slots',JSON.stringify(fsSlotList));
+        }
         if(activeTab==='dashboard') _rd();
       }).catch(function(){});
     }
@@ -2380,6 +2401,10 @@ function renderDashboard(){
   const sl=staff();
   const total=sl.length,comp=sl.filter(s=>s.theory>=90&&s.practical==='Passed').length;
   const notS=sl.filter(s=>s.theory===0).length,retake=sl.filter(s=>s.theory>0&&s.theory<90).length;
+  const theoryDone=sl.filter(s=>s.theory>=90).length;
+  // Pending OSCE = theory passed but no slot booked yet
+  const bookedRids=new Set((JSON.parse(localStorage.getItem('cgp8:slots')||'[]')).filter(function(b){return b&&b.registerId;}).map(function(b){return normalizeRid(b.registerId);}));
+  const pendingOSCE=sl.filter(s=>s.theory>=90&&s.practical!=='Passed'&&!bookedRids.has(normalizeRid(s.registerId||''))).length;
   const pct=total?Math.round(comp/total*100):0;
   const srch=(document.getElementById('srch-staff')||{}).value||'';
   const roleFilter=window._roleFilter||'All';
@@ -2561,26 +2586,67 @@ function renderDashboard(){
 
     ${userRole==='admin'?`
     <!-- STAT CARDS (admin only) -->
-    <div class="stats-row">
-      <div class="stat s-black">
-        <div class="stat-ico black">${svg('ic-users',18,18,'#fff')}</div>
-        <div class="stat-val">${total}</div>
-        <div class="stat-lbl">Total Staff</div>
+    <div class="stats-row" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
+      <!-- Total Staff -->
+      <div class="stat">
+        <div class="stat-icon-3d black">${svg('ic-users',30,30,'#fff')}</div>
+        <div class="stat-right">
+          <div class="stat-val2 black">${total}</div>
+          <div class="stat-lbl2">Total Staff</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:100%;background:#111"></div></div>
+          <div class="stat-frac">${total} / ${total} staff</div>
+        </div>
       </div>
-      <div class="stat s-green">
-        <div class="stat-ico green">${svg('ic-check-circle',18,18,'#fff')}</div>
-        <div class="stat-val">${comp}</div>
-        <div class="stat-lbl">Competent</div>
+      <!-- Competent -->
+      <div class="stat">
+        <div class="stat-icon-3d green">${svg('ic-check-circle',30,30,'#fff')}</div>
+        <div class="stat-right">
+          <div class="stat-val2 green">${comp}</div>
+          <div class="stat-lbl2">Competent</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:${total?Math.round(comp/total*100):0}%;background:#1a9b4e"></div></div>
+          <div class="stat-frac">${comp} / ${total} staff</div>
+        </div>
       </div>
-      <div class="stat s-yellow">
-        <div class="stat-ico yellow">${svg('ic-clock',18,18,'#111')}</div>
-        <div class="stat-val">${notS}</div>
-        <div class="stat-lbl">Not Started</div>
+      <!-- Not Started -->
+      <div class="stat">
+        <div class="stat-icon-3d yellow">${svg('ic-clock',30,30,'#fff')}</div>
+        <div class="stat-right">
+          <div class="stat-val2 yellow">${notS}</div>
+          <div class="stat-lbl2">Not Started</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:${total?Math.round(notS/total*100):0}%;background:#e0a800"></div></div>
+          <div class="stat-frac">${notS} / ${total} staff</div>
+        </div>
       </div>
-      <div class="stat s-red">
-        <div class="stat-ico red">${svg('ic-refresh',18,18,'#fff')}</div>
-        <div class="stat-val">${retake}</div>
-        <div class="stat-lbl">Needs Retake</div>
+      <!-- Theory Done -->
+      <div class="stat">
+        <div class="stat-icon-3d blue">${svg('ic-check-circle',30,30,'#fff')}</div>
+        <div class="stat-right">
+          <div class="stat-val2 blue">${theoryDone}</div>
+          <div class="stat-lbl2">Theory Done</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:${total?Math.round(theoryDone/total*100):0}%;background:#2980b9"></div></div>
+          <div class="stat-frac">${theoryDone} / ${total} staff</div>
+        </div>
+      </div>
+      <!-- Needs Retake -->
+      <div class="stat">
+        <div class="stat-icon-3d orange">${svg('ic-refresh',30,30,'#fff')}</div>
+        <div class="stat-right">
+          <div class="stat-val2 orange">${retake}</div>
+          <div class="stat-lbl2">Needs Retake</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:${total?Math.round(retake/total*100):0}%;background:#e67e22"></div></div>
+          <div class="stat-frac">${retake} / ${total} staff</div>
+        </div>
+      </div>
+      <!-- Pending OSCE Booking -->
+      <div class="stat stat-osce-anim" style="border-color:${pendingOSCE>0?'rgba(192,57,43,.25)':'#f0f0f0'}">
+        <div class="stat-icon-3d red">📋</div>
+        <div class="stat-right">
+          <div class="stat-val2 red">${pendingOSCE}</div>
+          <div class="stat-lbl2">Pending OSCE Booking</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:${total?Math.round(pendingOSCE/total*100):0}%;background:#c0392b"></div></div>
+          <div class="stat-frac">${pendingOSCE} / ${total} staff</div>
+        </div>
+        <span class="stat-osce-icon">📝</span>
       </div>
     </div>
 
@@ -2801,7 +2867,7 @@ function renderDashboard(){
           <thead><tr>
             <th class="name-th">Name</th><th>Role</th>
             ${userRole==='admin'?'<th>Register ID</th><th>No. IC</th><th>Phone</th><th>Email</th>':''}
-            <th class="tc">Theory</th><th class="tc">Theory Date</th><th class="tc">Practical</th><th class="tc">Status</th>
+            <th class="tc">Theory</th><th class="tc">Theory Date</th><th class="tc">Practical</th><th class="tc">OSCE Date</th><th class="tc">Status</th>
             ${userRole==='admin'?'<th class="tc">Last Login</th><th class="tc">Sijil</th><th class="tc">Actions</th>':''}
           </tr></thead>
           <tbody>
@@ -2818,6 +2884,11 @@ function renderDashboard(){
               const _updAt=toMs(s.updatedAt);
               const _loginTxt=_lastLogin?new Date(_lastLogin).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):_updAt?('~'+new Date(_updAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})):'Never';
               const _loginCol=_lastLogin?'#374151':_updAt?'#9ca3af':'#d1d5db';
+              // OSCE booking date
+              const _allSlots=JSON.parse(localStorage.getItem('cgp8:slots')||'[]');
+              const _mySlot=_allSlots.find(function(b){return b&&b.status==='Booked'&&(normalizeRid(b.bookedRegisterId||b.registerId||'')===_rid||normalizeRid(b.bookedRegisterId||b.registerId||'')===String(s.registerId||'').toUpperCase());});
+              const _osceDateTxt=_mySlot?new Date(_mySlot.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+(_mySlot.time?' · '+_mySlot.time:''):'—';
+              const _osceCol=_mySlot?'#166534':'#d1d5db';
               return `
               <tr${!s.registerId&&userRole==='admin'?' style="background:#fffbeb"':''}>
                 <td class="name-cell">${s.name}</td>
@@ -2830,6 +2901,7 @@ function renderDashboard(){
                 <td class="tc">${bTheory(s.theory)}</td>
                 <td class="tc"><span style="font-size:11px;font-family:var(--font-mono);font-weight:700;color:${_tca?'#16a34a':'#aaa'}">${_tcaStr}</span></td>
                 <td class="tc">${bPrac(s.practical)}</td>
+                <td class="tc"><span style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:${_osceCol};white-space:nowrap">${_osceDateTxt}</span></td>
                 <td class="tc">${bStatus(s.status)}</td>
                 ${userRole==='admin'?`
                 <td class="tc"><span style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:${_loginCol};white-space:nowrap">${_loginTxt}</span></td>`:''}
@@ -2847,7 +2919,7 @@ function renderDashboard(){
                 </td>`:''}
               </tr>`;
             }).join(''):
-              `<tr><td colspan="13" class="tbl-empty">No records found</td></tr>`}
+              `<tr><td colspan="14" class="tbl-empty">No records found</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -5097,11 +5169,14 @@ function renderBooking(){
   if(userRole==='staff'&&loggedInStaff){
     const qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
     const rid=normalizeRid(loggedInStaff.registerId);
+    const ridOrig=String(loggedInStaff.registerId||'').trim().toUpperCase();
     const moduleResults=THEORY_MODULES.map(function(m){
       return {num:m.num,score:qr[rid+'_m'+m.num]||0,completedAt:qr[rid+'_m'+m.num+'_completedAt']||0};
     });
     const allPassed=moduleResults.every(function(r){return r.score>=90;});
-    const theoryCompletedAt=qr[rid+'_theoryCompletedAt']||loggedInStaff._theoryCompletedAt||0;
+    // Use toMs() + check all sources including fsQRCache
+    const _qrCache=fsQRCache[rid]||fsQRCache[ridOrig]||{};
+    const theoryCompletedAt=toMs(qr[rid+'_theoryCompletedAt'])||toMs(qr[ridOrig+'_theoryCompletedAt'])||toMs(loggedInStaff._theoryCompletedAt)||toMs(_qrCache.theoryCompletedAt)||toMs(_qrCache.updatedAt)||0;
 
     if(!allPassed){
       const passedCount=moduleResults.filter(function(r){return r.score>=90;}).length;
@@ -5127,23 +5202,36 @@ function renderBooking(){
       if(!canBookNow){
         const daysLeft=Math.ceil((minBookDate-now)/(1000*60*60*24));
         eligibilityBanner=`<div style="background:#fffbeb;border:2px solid #fde68a;border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:12px">
-          <div style="font-size:22px;flex-shrink:0">⏳</div>
-          <div>
-            <div style="font-family:var(--font-head);font-size:13px;font-weight:900;color:#92400e;text-transform:uppercase;margin-bottom:4px">Waiting Period</div>
-            <div style="font-size:12px;color:#78350f;font-family:var(--font-mono);font-weight:700;margin-bottom:4px">Theory completed: <strong>${completedStr}</strong></div>
-            <div style="font-size:12px;color:#78350f;font-family:var(--font-mono);font-weight:700;margin-bottom:4px">Earliest booking date: <strong style="color:#c0392b">${minStr}</strong></div>
-            <div style="font-size:11px;color:#92400e;font-family:var(--font-mono);font-weight:700">⏳ ${daysLeft} day(s) remaining before you can book.</div>
+          <div style="font-size:22px;flex-shrink:0">📅</div>
+          <div style="flex:1">
+            <div style="font-family:var(--font-head);font-size:13px;font-weight:900;color:#92400e;text-transform:uppercase;margin-bottom:6px">OSCE Booking Info</div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">
+              <div style="font-size:12px;color:#78350f;font-family:var(--font-mono);font-weight:700">✅ Theory completed: <strong>${completedStr}</strong></div>
+              <div style="font-size:12px;color:#c0392b;font-family:var(--font-mono);font-weight:700">🗓 Earliest OSCE date: <strong>${minStr}</strong></div>
+            </div>
+            <div style="background:rgba(192,57,43,.08);border-radius:8px;padding:7px 10px;font-size:11px;color:#92400e;font-family:var(--font-mono);font-weight:700">
+              ⚠️ You may browse slots now, but slots <strong>before ${minStr}</strong> cannot be booked (${daysLeft} day(s) remaining).
+            </div>
           </div>
         </div>`;
       } else {
         eligibilityBanner=`<div style="background:#f0fdf4;border:2px solid #86efac;border-radius:14px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
           <div style="font-size:20px">✅</div>
           <div>
-            <div style="font-family:var(--font-head);font-size:13px;font-weight:900;color:#166534;text-transform:uppercase">Eligible to Book</div>
+            <div style="font-family:var(--font-head);font-size:13px;font-weight:900;color:#166534;text-transform:uppercase">Eligible to Book OSCE</div>
             <div style="font-size:11px;color:#15803d;font-family:var(--font-mono);font-weight:700">Theory completed: ${completedStr} · Eligible from: ${minStr}</div>
           </div>
         </div>`;
       }
+    } else if(allPassed){
+      // All passed but no theoryCompletedAt recorded — show eligible directly
+      eligibilityBanner=`<div style="background:#f0fdf4;border:2px solid #86efac;border-radius:14px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <div style="font-size:20px">✅</div>
+        <div>
+          <div style="font-family:var(--font-head);font-size:13px;font-weight:900;color:#166534;text-transform:uppercase">Eligible to Book OSCE</div>
+          <div style="font-size:11px;color:#15803d;font-family:var(--font-mono);font-weight:700">All theory modules passed. You may proceed to book your practical slot.</div>
+        </div>
+      </div>`;
     }
   }
 
@@ -5208,9 +5296,20 @@ function renderBooking(){
       </div>
     </div>`;
 
+  const _qrBk=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
+  const _ridBk=loggedInStaff?normalizeRid(loggedInStaff.registerId):'';
+  const _ridBkOrig=loggedInStaff?String(loggedInStaff.registerId||'').trim().toUpperCase():'';
+  const _qrCacheBk=fsQRCache[_ridBk]||fsQRCache[_ridBkOrig]||{};
+  const _tcaBk=toMs(_qrBk[_ridBk+'_theoryCompletedAt'])||toMs(_qrBk[_ridBkOrig+'_theoryCompletedAt'])||toMs(loggedInStaff&&loggedInStaff._theoryCompletedAt)||toMs(_qrCacheBk.theoryCompletedAt)||toMs(_qrCacheBk.updatedAt)||0;
+  const _minBookMsBk=_tcaBk?(_tcaBk+(7*24*60*60*1000)):0;
+
   const cards=sfd.length?sfd.map(slot=>{
     const sid=slot._fsId||slot.id, av=slot.status==='Available';
-    return `<div class="slot-card ${av?'av':'bk'}">
+    // Check if slot date is before eligible date
+    const _slotDateMs=slot.date?new Date(slot.date+'T12:00:00').getTime():0;
+    const _slotBlocked=userRole==='staff'&&_minBookMsBk>0&&_slotDateMs>0&&_slotDateMs<_minBookMsBk;
+    const _minBookStr=_minBookMsBk?new Date(_minBookMsBk).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+    return `<div class="slot-card ${av?'av':'bk'}${_slotBlocked?' slot-blocked':''}">
       ${userRole==='admin'?`<div class="slot-adm">
         <button class="slot-adm-btn" onclick="openEditSlot('${sid}')" title="Edit">${svg('ic-edit',11,11)}</button>
         <button class="slot-adm-btn" onclick="delSlot('${sid}')" title="Delete">${svg('ic-trash',11,11)}</button>
@@ -5221,9 +5320,12 @@ function renderBooking(){
         <div class="slot-badge ${av?'av':'bk'}">${av?'Available':'Full'}</div>
       </div>
       <div class="slot-trainer">Trainer: <strong>${slot.trainer}</strong>${slot.bookedRole?` &nbsp;·&nbsp; <span style="color:#c0392b;font-weight:700">${slot.bookedRole}</span>`:''}</div>
-      ${av?`<button class="btn-book" onclick="openBook('${sid}')">Book Slot</button>`:
-            `<div class="booked-row">${svg('ic-check-circle',14,14,'#27ae60')} ${slot.bookedBy||'Booked'}${slot.bookedRole?' — '+slot.bookedRole:''}</div>
-             ${userRole==='admin'&&slot.phone?`<div class="slot-phone">${svg('ic-phone',12,12,'#888')} ${slot.phone}</div>`:''}`}
+      ${av?(_slotBlocked?
+        `<button class="btn-book" onclick="openBook('${sid}')" style="background:#aaa;cursor:not-allowed;opacity:.7" title="Cannot book before ${_minBookStr}">🔒 Book Slot</button>
+         <div style="font-size:9px;color:#e67e22;font-family:var(--font-mono);font-weight:700;margin-top:4px;text-align:center">Available from ${_minBookStr}</div>`:
+        `<button class="btn-book" onclick="openBook('${sid}')">Book Slot</button>`):
+        `<div class="booked-row">${svg('ic-check-circle',14,14,'#27ae60')} ${slot.bookedBy||'Booked'}${slot.bookedRole?' — '+slot.bookedRole:''}</div>
+         ${userRole==='admin'&&slot.phone?`<div class="slot-phone">${svg('ic-phone',12,12,'#888')} ${slot.phone}</div>`:''}`}
     </div>`;
   }).join(''):
   `<div class="slots-empty"><div class="empty-box"><div class="empty-ico">${svg('ic-cal',22,22,'#ccc')}</div><div class="empty-txt">No sessions scheduled</div></div></div>`;
@@ -5287,11 +5389,16 @@ function openBook(id){
       toast('Please complete all 4 theory modules (≥90% each) before booking.','err');
       return;
     }
-    var completedAt=qr[rid+'_theoryCompletedAt']||loggedInStaff._theoryCompletedAt||0;
+    var completedAt=toMs(qr[rid+'_theoryCompletedAt'])||toMs(loggedInStaff._theoryCompletedAt)||0;
     if(!completedAt&&fb){
       toast('Checking eligibility...');
       fb.getDoc(fb.doc(fb.db,'quizResults',String(rid))).then(function(snap){
-        var fsAt=snap.exists&&snap.exists()?Number(snap.data()[rid+'_theoryCompletedAt']||0):0;
+        var fsRaw=snap.exists&&snap.exists()?snap.data()[rid+'_theoryCompletedAt']:0;
+        // Also check original (non-normalized) key
+        var fsRawOrig=snap.exists&&snap.exists()?snap.data()[(loggedInStaff&&loggedInStaff.registerId?String(loggedInStaff.registerId).trim().toUpperCase():rid)+'_theoryCompletedAt']:0;
+        // Also use updatedAt from quizResults as fallback (actual date quiz was done)
+        var fsUpdatedAt=snap.exists&&snap.exists()?snap.data().updatedAt:0;
+        var fsAt=toMs(fsRaw)||toMs(fsRawOrig)||toMs(fsUpdatedAt)||0;
         if(fsAt){
           var qrL=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
           qrL[rid+'_theoryCompletedAt']=fsAt;
@@ -5310,17 +5417,19 @@ function openBook(id){
 function _checkBookingDateAndOpen(id, completedAt, rid){
   var slotObj=slotsAll().find(function(s){return (s._fsId||s.id)===id;});
   var slotDateStr=slotObj?slotObj.date:'';
-  if(completedAt && slotDateStr){
+  var caMs=toMs(completedAt);
+  if(caMs && slotDateStr){
     var slotDate=new Date(slotDateStr+'T12:00:00');
-    var minDate=new Date(completedAt+(7*24*60*60*1000));
+    var minDate=new Date(caMs+(7*24*60*60*1000));
     minDate.setHours(0,0,0,0);
     if(slotDate<minDate){
       var minStr=minDate.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-      var completedStr=new Date(completedAt).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-      toast('Booking not allowed. Must wait 1 week after theory completion ('+completedStr+'). Earliest: '+minStr+'.','err');
+      var completedStr=new Date(caMs).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+      toast('❌ Slot ini terlalu awal. Theory selesai: '+completedStr+'. Boleh book dari: '+minStr+' sahaja.','err');
       return;
     }
   }
+  // No completedAt found — allow booking (staff completed theory, date just not recorded)
   _openBookModal();
 }
 function _openBookModal(){
