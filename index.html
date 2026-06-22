@@ -199,7 +199,10 @@ tbody tr:hover{background:#fff5f5}
 .tbl-act-btn:hover.e{color:#2563eb;background:#eff6ff}
 .tbl-act-btn:hover.d{color:var(--red);background:#fff0f0}
 .tbl-empty{padding:32px;text-align:center;font-size:13px;color:#aaa;text-transform:uppercase;letter-spacing:.1em;font-family:var(--font-mono);font-weight:700}
-td.name-cell{font-weight:700;color:#111;font-size:15px;font-family:var(--font-head)}
+.tbl-scroll-top{overflow-x:auto;overflow-y:hidden;height:14px}
+td.name-cell{font-weight:700;color:#111;font-size:14px;font-family:var(--font-head);position:sticky;left:0;z-index:2;background:#fff;box-shadow:3px 0 6px rgba(0,0,0,.08);min-width:160px;max-width:200px;white-space:normal;word-break:break-word;line-height:1.3}
+tbody tr:hover td.name-cell{background:#fff5f5}
+th.name-th{position:sticky;left:0;z-index:3;background:#111;box-shadow:3px 0 8px rgba(0,0,0,.4)}
 td.role-cell{font-size:14px;color:#111;font-weight:700}
 
 /* ── TRAINING ── */
@@ -833,6 +836,8 @@ select.pw-inp option{background:#1a1a2e;color:#fff}/* ── IMAGE ZOOM MODAL �
       <input class="minp" id="st-ic" type="text" placeholder="e.g. 901231071234" maxlength="12" oninput="this.value=this.value.replace(/\D/g,'').slice(0,12)" inputmode="numeric">
       <label class="mlbl">Email / Gmail</label>
       <input class="minp" id="st-gmail" type="email" placeholder="e.g. name@gmail.com">
+      <label class="mlbl">No. Phone</label>
+      <input class="minp" id="st-phone" type="tel" placeholder="e.g. 012-3456789" maxlength="15">
       <label class="mlbl">Register ID (unik)</label>
       <input class="minp" id="st-regid" type="text" placeholder="e.g. SN1 / MO3" style="text-transform:uppercase">
       <label class="mlbl">Password (peribadi)</label>
@@ -1069,6 +1074,47 @@ select.pw-inp option{background:#1a1a2e;color:#fff}/* ── IMAGE ZOOM MODAL �
 
 <script>
 // ── STATE ─────────────────────────────────────────────
+// Normalize Register ID — fix common typos: H0005→HO005, SN003→SN3, MO017→MO17
+// Rules: prefix must be SN/MO/HO (letter O, not zero), number has NO leading zeros
+function autoGenerateRegisterId(role){
+  const prefix=role==='Staff Nurse'?'SN':role==='HO'?'HO':'MO';
+  const allStaff=staff();
+  const used=new Set();
+  allStaff.forEach(function(s){
+    const rid=normalizeRid(s.registerId||'');
+    if(rid.startsWith(prefix)){const num=parseInt(rid.slice(prefix.length));if(!isNaN(num)&&num>0)used.add(num);}
+  });
+  let n=1; while(used.has(n))n++; return prefix+n;
+}
+function normalizeRid(rid){
+  if(!rid) return rid;
+  var s=String(rid).trim().toUpperCase();
+  // Fix letter vs digit confusion in prefix: H0→HO, MO/SN ok
+  s=s.replace(/^H0+(\d)/,'HO$1');   // H0005 → HO5 (or H003 → HO3)
+  s=s.replace(/^M0+(\d)/,'MO$1');   // M0017 → MO17
+  s=s.replace(/^S0+(\d)/,'SN$1');   // S0003 → SN3 (unlikely but safe)
+  // Fix numeric part — remove leading zeros: HO005→HO5, SN003→SN3
+  var prefixes=['SN','MO','HO'];
+  for(var i=0;i<prefixes.length;i++){
+    var p=prefixes[i];
+    if(s.startsWith(p)){
+      var num=s.slice(p.length).replace(/\D/g,'');
+      num=num.replace(/^0+/,'') || '0'; // remove leading zeros, keep at least '0'
+      return p+num;
+    }
+  }
+  return s;
+}
+
+// Convert Firestore Timestamp object OR number to milliseconds
+function toMs(v){
+  if(!v) return 0;
+  if(typeof v==='object'&&v.seconds) return v.seconds*1000;
+  if(typeof v==='number'&&v>1000000000000) return v;      // already ms
+  if(typeof v==='number'&&v>1000000000) return v*1000;    // seconds → ms
+  return 0;
+}
+
 let userRole=null, selRole=null, activeTab='dashboard';
 let loggedInStaff=null;
 let selDate=new Date().toISOString().split('T')[0];
@@ -1080,6 +1126,7 @@ let quizResult=null;
 let quizTimerInterval=null;  // timer interval reference
 let quizTimeLeft=300;        // seconds remaining (5 min default)
 let fsStaff=[],fsSlots=[],fsVideos=[],fsDocs=[],fsImages=[],fsReadings=[],fsQuestions=[],fsProQuestions=[];
+let fsQRCache={}; // {rid: {updatedAt_ms, theoryCompletedAt_ms}} — from Firestore quizResults
 let _deletedQuestionIds=new Set(JSON.parse(localStorage.getItem('cgp8:deleted_qids')||'[]'));
 let fsFeedbackQuestions=[]; // Coordinator-managed feedback questions
 let fsCertLink=localStorage.getItem('cgp8:certlink')||'';
@@ -1136,11 +1183,34 @@ function listenAll(){
     fsStaff=d;
     const localQR=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
     const merged=d.map(function(s){
-      const rid=s.registerId;
-      if(!rid) return s;
-      // Calculate local theory from quiz scores
+      const ridRaw=s.registerId;
+      if(!ridRaw) return s;
+      const rid=normalizeRid(ridRaw);
+      // Also check original (non-normalized) key in case data was saved with old format
+      const ridOld=String(ridRaw).trim().toUpperCase();
       const moduleNums=[1,2,3,4];
-      const modulesPassed=moduleNums.filter(function(n){return (localQR[rid+'_m'+n]||0)>=90;});
+      const modulesPassed=moduleNums.filter(function(n){
+        // Check both normalized and original key
+        return (localQR[rid+'_m'+n]||localQR[ridOld+'_m'+n]||0)>=90;
+      });
+      // Migrate old-format keys to normalized format if they exist
+      if(rid!==ridOld){
+        var migrated=false;
+        moduleNums.forEach(function(n){
+          var oldKey=ridOld+'_m'+n;
+          var newKey=rid+'_m'+n;
+          var oldCk=ridOld+'_m'+n+'_completedAt';
+          var newCk=rid+'_m'+n+'_completedAt';
+          if((localQR[oldKey]||0)>0&&!(localQR[newKey]>=90)){
+            localQR[newKey]=localQR[oldKey];migrated=true;
+          }
+          if(localQR[oldCk]&&!localQR[newCk]){localQR[newCk]=localQR[oldCk];migrated=true;}
+        });
+        var oldTca=ridOld+'_theoryCompletedAt';
+        var newTca=rid+'_theoryCompletedAt';
+        if(localQR[oldTca]&&!localQR[newTca]){localQR[newTca]=localQR[oldTca];migrated=true;}
+        if(migrated) localStorage.setItem('cgp8:quizresults',JSON.stringify(localQR));
+      }
       const localTheory=modulesPassed.length===moduleNums.length?100:Math.round((modulesPassed.length/moduleNums.length)*100);
       // Trust whichever is HIGHER — Firestore staff record OR local quiz scores
       const finalTheory=Math.max(s.theory||0, localTheory);
@@ -1153,11 +1223,11 @@ function listenAll(){
           if(i<numP&&!(localQR[k]>=90)){
             localQR[k]=s.theory===100?100:90;
             const ck=rid+'_m'+n+'_completedAt';
-            if(!localQR[ck]) localQR[ck]=s._theoryCompletedAt||now;
+            if(!localQR[ck]) localQR[ck]=toMs(s._theoryCompletedAt)||0;
           }
         });
         if(numP>=moduleNums.length&&!localQR[rid+'_theoryCompletedAt']){
-          localQR[rid+'_theoryCompletedAt']=s._theoryCompletedAt||now;
+          if(!localQR[rid+'_theoryCompletedAt']) localQR[rid+'_theoryCompletedAt']=toMs(s._theoryCompletedAt)||0;
         }
         localStorage.setItem('cgp8:quizresults',JSON.stringify(localQR));
       }
@@ -1172,7 +1242,7 @@ function listenAll(){
       const fresh=merged.find(function(s){return s.registerId===loggedInStaff.registerId;});
       if(fresh){
         const safeTheory=Math.max(loggedInStaff.theory||0, fresh.theory||0);
-        const safeCompletedAt=fresh._theoryCompletedAt||loggedInStaff._theoryCompletedAt||0;
+        const safeCompletedAt=toMs(fresh._theoryCompletedAt)||toMs(loggedInStaff._theoryCompletedAt)||0;
         loggedInStaff=Object.assign({},fresh,{theory:safeTheory,_theoryCompletedAt:safeCompletedAt,status:calcStatus(safeTheory,fresh.practical||'Pending')});
       }
     }
@@ -1401,22 +1471,6 @@ function renderLogin(){
 function setRole(r){selRole=r;renderLogin();}
 
 // ── STAFF SELF REGISTRATION ───────────────────────────
-function autoGenerateRegisterId(role){
-  const prefix=role==='Staff Nurse'?'SN':role==='HO'?'HO':'MO';
-  const allStaff=staff();
-  const used=new Set();
-  allStaff.forEach(function(s){
-    const rid=s.registerId||'';
-    if(rid.toUpperCase().startsWith(prefix)){
-      const num=parseInt(rid.slice(prefix.length));
-      if(!isNaN(num)&&num>0) used.add(num);
-    }
-  });
-  let n=1;
-  while(used.has(n)) n++;
-  return prefix+n;
-}
-
 function showRegister(){
   const b=document.getElementById('login-body');
   b.innerHTML=`
@@ -1425,25 +1479,20 @@ function showRegister(){
       <button onclick="selRole='staff';renderLogin()">Back</button>
     </div>
     <label class="pw-lbl">Full Name *</label>
-    <div class="pw-wrap">
-      <svg><use href="#ic-users"/></svg>
+    <div class="pw-wrap"><svg><use href="#ic-users"/></svg>
       <input class="pw-inp" id="reg-name" type="text" placeholder="Full Name (as per IC)" oninput="autoFormatName(this)">
     </div>
-    <label class="pw-lbl" style="margin-top:4px">IC Number * <span style="color:#888;font-weight:400">(digits only, no dash)</span></label>
-    <div class="pw-wrap">
-      <svg><use href="#ic-key"/></svg>
+    <label class="pw-lbl" style="margin-top:4px">IC Number * <span style="color:#888;font-weight:400">(12 digits, no dash)</span></label>
+    <div class="pw-wrap"><svg><use href="#ic-key"/></svg>
       <input class="pw-inp" id="reg-ic" type="text" placeholder="e.g. 9001011012345" maxlength="12" oninput="autoFormatIc(this)">
     </div>
-    <div style="font-size:10px;color:#888;margin:-6px 0 6px 4px">12 digits only — no dash or spaces</div>
     <label class="pw-lbl" style="margin-top:4px">Email *</label>
-    <div class="pw-wrap">
-      <svg><use href="#ic-users"/></svg>
+    <div class="pw-wrap"><svg><use href="#ic-users"/></svg>
       <input class="pw-inp" id="reg-email" type="email" placeholder="name@hospital.gov.my">
     </div>
-    <label class="pw-lbl" style="margin-top:4px">No. Phone * <span style="color:#888;font-weight:400">(for booking confirmation)</span></label>
-    <div class="pw-wrap">
-      <svg><use href="#ic-phone"/></svg>
-      <input class="pw-inp" id="reg-phone" type="tel" placeholder="e.g. 012-3456789" maxlength="15" oninput="this.value=this.value.replace(/[^0-9\-+]/g,'')">
+    <label class="pw-lbl" style="margin-top:4px">No. Phone * <span style="color:#888;font-weight:400">(for booking)</span></label>
+    <div class="pw-wrap"><svg><use href="#ic-phone"/></svg>
+      <input class="pw-inp" id="reg-phone" type="tel" placeholder="e.g. 012-3456789" maxlength="15" oninput="this.value=this.value.replace(/[^0-9\-+]/g,\'\')">
     </div>
     <label class="pw-lbl" style="margin-top:4px">Position / Role</label>
     <select class="pw-inp" id="reg-role" style="padding-left:13px">
@@ -1451,18 +1500,16 @@ function showRegister(){
       <option value="HO">House Officer (HO)</option>
       <option value="Staff Nurse">Staff Nurse (SN)</option>
     </select>
-    <label class="pw-lbl" style="margin-top:4px">New Password * <span style="color:#888;font-weight:400">(min. 4 characters)</span></label>
-    <div class="pw-wrap">
-      <svg><use href="#ic-key"/></svg>
+    <label class="pw-lbl" style="margin-top:4px">New Password * <span style="color:#888;font-weight:400">(min. 4 chars)</span></label>
+    <div class="pw-wrap"><svg><use href="#ic-key"/></svg>
       <input class="pw-inp" id="reg-pw" type="password" placeholder="Min. 4 characters" maxlength="20" autocomplete="new-password">
     </div>
     <label class="pw-lbl" style="margin-top:4px">Confirm Password *</label>
-    <div class="pw-wrap">
-      <svg><use href="#ic-key"/></svg>
+    <div class="pw-wrap"><svg><use href="#ic-key"/></svg>
       <input class="pw-inp" id="reg-pw2" type="password" placeholder="Re-enter password" maxlength="20" autocomplete="new-password">
     </div>
     <div style="background:#fffbe6;border:1px solid #f0c040;border-radius:10px;padding:10px 13px;margin:10px 0 4px;font-size:11px;color:#7a5c00;line-height:1.6">
-      ⚠️ <strong>Important:</strong> Please ensure your <strong>full name</strong> and <strong>IC number</strong> are entered correctly. These details will appear on your <strong>Certificate of Competency</strong> and <strong>cannot be changed later</strong>.
+      ⚠️ Pastikan <strong>nama penuh</strong> dan <strong>no. IC</strong> betul. Maklumat ini akan tertera dalam <strong>Sijil Kompetensi</strong> dan <strong>tidak boleh ditukar</strong>.
     </div>
     <div class="pw-err" id="reg-err"></div>
     <button class="login-btn green" onclick="doRegister()" style="margin-top:8px">Register Now</button>`;
@@ -1477,56 +1524,41 @@ async function doRegister(){
   const pw=document.getElementById('reg-pw').value;
   const pw2=document.getElementById('reg-pw2').value;
   const errEl=document.getElementById('reg-err');
-  if(!name||!ic||!email||!phone||!pw){errEl.textContent='Please fill in all required fields (*)';return;}
-  if(!/^\d{12}$/.test(ic)){errEl.textContent='IC number must be exactly 12 digits (no dash or spaces)';return;}
-  if(phone.replace(/\D/g,'').length<9){errEl.textContent='Please enter a valid phone number (min. 9 digits).';return;}
-  if(pw.length<4){errEl.textContent='Password must be at least 4 characters';return;}
-  if(pw!==pw2){errEl.textContent='Passwords do not match';return;}
-  if(!/\S+@\S+\.\S+/.test(email)){errEl.textContent='Invalid email format';return;}
-
-  // Fetch latest staff from Firestore before generating ID (avoid duplicates)
-  if(fb){
-    try{
-      const snap=await fb.getDocs(fb.collection(fb.db,'staff'));
-      const fresh=snap.docs.map(d=>({...d.data(),_fsId:d.id}));
-      if(fresh.length){fsStaff=fresh;localStaff=fresh;localStorage.setItem('cgp8:staff',JSON.stringify(fresh));}
-    }catch(e){}
-  }
-
-  // Check duplicate IC
+  if(!name||!ic||!email||!phone||!pw){errEl.textContent='Sila isi semua ruangan wajib (*)';return;}
+  if(!/^\d{12}$/.test(ic)){errEl.textContent='No. IC mesti 12 digit sahaja (tanpa sengkang)';return;}
+  if(phone.replace(/\D/g,'').length<9){errEl.textContent='No. phone tidak sah (min. 9 digit)';return;}
+  if(pw.length<4){errEl.textContent='Password mesti sekurang-kurangnya 4 aksara';return;}
+  if(pw!==pw2){errEl.textContent='Password tidak sepadan';return;}
+  if(!/\S+@\S+\.\S+/.test(email)){errEl.textContent='Format email tidak sah';return;}
+  if(fb){try{const snap=await fb.getDocs(fb.collection(fb.db,'staff'));const fresh=snap.docs.map(d=>({...d.data(),_fsId:d.id}));if(fresh.length){fsStaff=fresh;localStaff=fresh;localStorage.setItem('cgp8:staff',JSON.stringify(fresh));}}catch(e){}}
   const allStaff=staff();
-  if(allStaff.find(s=>s.ic&&s.ic===ic)){errEl.textContent='An account with this IC number already exists.';return;}
-
-  // Auto-generate Register ID based on role + lowest unused number
+  if(allStaff.find(s=>s.ic&&s.ic===ic)){errEl.textContent='Akaun dengan no. IC ini sudah wujud.';return;}
   const rid=autoGenerateRegisterId(role);
-
   const id='s'+Date.now();
   const newStaff={id,name,role,registerId:rid,ic,email,gmail:email,phone,theory:0,practical:'Pending',status:'Not Started',password:pw,createdAt:Date.now()};
   if(fb){await fsSet('staff',id,{...newStaff,createdAt:fb.serverTimestamp()});}
   localStaff=[...localStaff,newStaff];
   localStorage.setItem('cgp8:staff',JSON.stringify(localStaff));
-
-  // Show success screen with generated Register ID
   const roleLabel=role==='Staff Nurse'?'Staff Nurse':role==='HO'?'House Officer':'Medical Officer';
   const b=document.getElementById('login-body');
   b.innerHTML=`
     <div style="background:linear-gradient(135deg,#1a5c35,#27ae60);border-radius:16px;padding:20px;text-align:center;margin-bottom:12px">
       <div style="font-size:36px;margin-bottom:8px">✅</div>
-      <div style="font-family:var(--font-head);font-size:16px;font-weight:900;color:#fff;text-transform:uppercase;margin-bottom:4px">Registration Successful!</div>
+      <div style="font-family:var(--font-head);font-size:16px;font-weight:900;color:#fff;text-transform:uppercase;margin-bottom:4px">Pendaftaran Berjaya!</div>
       <div style="font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,.7);margin-bottom:16px">${name} · ${roleLabel}</div>
       <div style="background:rgba(0,0,0,.25);border-radius:12px;padding:16px;margin-bottom:12px">
-        <div style="font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px">Your Register ID (Username)</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px">Register ID (Username)</div>
         <div style="font-family:var(--font-head);font-size:42px;font-weight:900;color:#f1c40f;letter-spacing:.1em;line-height:1">${rid}</div>
       </div>
       <div style="background:rgba(241,196,15,.18);border:1.5px solid rgba(241,196,15,.5);border-radius:10px;padding:11px 13px;text-align:left">
-        <div style="font-family:var(--font-mono);font-size:11px;color:#f1c40f;font-weight:900;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">⚠️ SAVE THIS ID — IMPORTANT!</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:#f1c40f;font-weight:900;text-transform:uppercase;margin-bottom:5px">⚠️ SIMPAN ID INI!</div>
         <div style="font-family:var(--font-mono);font-size:12px;color:#fff;font-weight:700;line-height:1.6">
-          Use <strong style="color:#f1c40f;font-size:14px">${rid}</strong> as your <strong>username</strong> every time you log in.<br>
-          <span style="color:rgba(255,255,255,.65);font-size:10px">Screenshot or write this down before proceeding.</span>
+          Guna <strong style="color:#f1c40f;font-size:14px">${rid}</strong> sebagai <strong>username</strong> setiap kali log in.<br>
+          <span style="color:rgba(255,255,255,.65);font-size:10px">Screenshot atau tulis sebelum teruskan.</span>
         </div>
       </div>
     </div>
-    <button class="login-btn green" onclick="selRole='staff';renderLogin()" style="margin-top:4px">← Proceed to Login</button>`;
+    <button class="login-btn green" onclick="selRole='staff';renderLogin()" style="margin-top:4px">← Pergi ke Log In</button>`;
 }
 
 // ── RESET PASSWORD ────────────────────────────────────
@@ -1736,18 +1768,43 @@ function enter(role,staffObj){
   listenAll();
 
   if(role==='staff'&&fb&&staffObj&&staffObj.registerId){
-    const rid=String(staffObj.registerId);
+    const rid=normalizeRid(String(staffObj.registerId));
+    // Save last login
+    const _lnow=Date.now();localStorage.setItem('cgp8:lastlogin_'+rid,String(_lnow));
+    if(fb)fb.setDoc(fb.doc(fb.db,'staff',String(staffObj._fsId||staffObj.id)),{lastLoginAt:_lnow,updatedAt:fb.serverTimestamp()},{merge:true}).catch(function(){});
     // Show dashboard immediately with whatever we have
     go('dashboard');
     toast('Welcome, '+displayName+'!');
     // Then fetch Firestore data and re-render with correct scores
     _syncStaffDataOnLogin(rid).then(function(){
-      if(activeTab==='dashboard') renderDashboard();
+      if(activeTab==='dashboard') _rd();
       if(activeTab==='training') renderTraining();
     });
   } else {
     go('dashboard');
     toast('Welcome, '+displayName+'!');
+    // Coordinator: batch-fetch quizResults to get accurate theory dates
+    if(fb){
+      fb.getDocs(fb.collection(fb.db,'quizResults')).then(function(snap){
+        fsQRCache={};
+        snap.docs.forEach(function(d){
+          var data=d.data();
+          var ridRaw=d.id||data.registerId||'';
+          var rid=normalizeRid(ridRaw);
+          var ridOrig=String(ridRaw).trim().toUpperCase();
+          if(!rid) return;
+          // Check theoryCompletedAt with both normalized and original key
+          var tca=toMs(data[rid+'_theoryCompletedAt'])||toMs(data[ridOrig+'_theoryCompletedAt'])||0;
+          fsQRCache[rid]={
+            updatedAt:toMs(data.updatedAt),
+            theoryCompletedAt:tca
+          };
+          // Also store under original key in case lookup uses old format
+          if(ridOrig!==rid) fsQRCache[ridOrig]=fsQRCache[rid];
+        });
+        if(activeTab==='dashboard') _rd();
+      }).catch(function(){});
+    }
   }
 }
 
@@ -1756,8 +1813,11 @@ async function _syncStaffDataOnLogin(rid){
     // 1. Fetch quizResults doc
     var localQR=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
     var snap=await fb.getDoc(fb.doc(fb.db,'quizResults',rid));
+    var fsQRUpdatedAt=0; // capture quizResults updatedAt as fallback theory date
     if(snap.exists&&snap.exists()){
       var fsQR=snap.data();
+      // Capture updatedAt from quizResults doc — this is when staff actually did the quiz
+      if(fsQR.updatedAt) fsQRUpdatedAt=toMs(fsQR.updatedAt);
       Object.keys(fsQR).forEach(function(k){
         if(k.startsWith(rid+'_m')||k.endsWith('_completedAt')||k===rid+'_theoryCompletedAt'){
           if(k.endsWith('_completedAt')){
@@ -1783,11 +1843,11 @@ async function _syncStaffDataOnLogin(rid){
         if(i<numPassed&&!(localQR[k]>=90)){
           localQR[k]=staffTheory===100?100:90;
           var ck=rid+'_m'+m.num+'_completedAt';
-          if(!localQR[ck]) localQR[ck]=loggedInStaff._theoryCompletedAt||now;
+          if(!localQR[ck]) localQR[ck]=toMs(loggedInStaff._theoryCompletedAt)||0;
         }
       });
       if(numPassed>=THEORY_MODULES.length&&!localQR[rid+'_theoryCompletedAt']){
-        localQR[rid+'_theoryCompletedAt']=loggedInStaff._theoryCompletedAt||now;
+        if(!localQR[rid+'_theoryCompletedAt']) localQR[rid+'_theoryCompletedAt']=toMs(loggedInStaff._theoryCompletedAt)||0;
       }
       allPassed=THEORY_MODULES.every(function(m){return (localQR[rid+'_m'+m.num]||0)>=90;});
     }
@@ -1795,7 +1855,7 @@ async function _syncStaffDataOnLogin(rid){
     // If all passed but still no theoryCompletedAt — set it now (for staff who passed before this fix)
     if(allPassed&&!localQR[rid+'_theoryCompletedAt']){
       // Try to get from staff record first
-      var completedAtToUse=loggedInStaff._theoryCompletedAt||0;
+      var completedAtToUse=toMs(loggedInStaff._theoryCompletedAt)||0;
       if(!completedAtToUse){
         // Try Firestore staff doc
         try{
@@ -1803,11 +1863,11 @@ async function _syncStaffDataOnLogin(rid){
           var myDoc2=staffSnap2.docs.find(function(d){
             return String(d.data().registerId||'').trim().toUpperCase()===rid.toUpperCase();
           });
-          if(myDoc2&&myDoc2.data()._theoryCompletedAt) completedAtToUse=myDoc2.data()._theoryCompletedAt;
+          if(myDoc2&&myDoc2.data()._theoryCompletedAt) completedAtToUse=toMs(myDoc2.data()._theoryCompletedAt);
         }catch(e){}
       }
-      // Use whatever we found, or today as last resort
-      localQR[rid+'_theoryCompletedAt']=completedAtToUse||now;
+      // Use quizResults.updatedAt as best fallback (actual date quiz was done), never Date.now()
+      localQR[rid+'_theoryCompletedAt']=completedAtToUse||fsQRUpdatedAt||0;
       // Set each module completedAt too if missing
       THEORY_MODULES.forEach(function(m){
         var ck=rid+'_m'+m.num+'_completedAt';
@@ -1837,7 +1897,7 @@ async function _syncStaffDataOnLogin(rid){
     var passed=THEORY_MODULES.filter(function(m){return (localQR[rid+'_m'+m.num]||0)>=90;});
     var newTheory=passed.length===THEORY_MODULES.length?100:Math.round((passed.length/THEORY_MODULES.length)*100);
     var safeTheory=Math.max(loggedInStaff?loggedInStaff.theory||0:0, newTheory);
-    var safeCompletedAt=localQR[rid+'_theoryCompletedAt']||0;
+    var safeCompletedAt=toMs(localQR[rid+'_theoryCompletedAt'])||0;
     if(loggedInStaff){
       loggedInStaff=Object.assign({},loggedInStaff,{
         theory:safeTheory,
@@ -1894,7 +1954,7 @@ function go(tab,keepTrainingState=false){
   window.scrollTo(0,0);
 }
 function renderPage(){
-  if(activeTab==='dashboard')  renderDashboard();
+  if(activeTab==='dashboard'){renderDashboard();setTimeout(syncTblScrollTop,120);}
   // Don't re-render training if quiz is in progress or showing result
   if(activeTab==='training' && staffTrainingView!=='quiz' && staffTrainingView!=='quiz-result' && staffTrainingView!=='proquiz-running') renderTraining();
   if(activeTab==='booking')    renderBooking();
@@ -2314,6 +2374,8 @@ function svg(id,w,h,col){return`<svg style="width:${w||14}px;height:${h||14}px;$
 document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
 
 // ── DASHBOARD ─────────────────────────────────────────
+function syncTblScrollTop(){var m=document.getElementById("tbl-main");var t=document.getElementById("tbl-top");var i=document.getElementById("tbl-top-inner");if(!m||!t||!i)return;var tbl=m.querySelector("table");if(tbl){i.style.width=tbl.scrollWidth+"px";t.style.display=tbl.scrollWidth>m.clientWidth?"block":"none";}}
+function _rd(){renderDashboard();setTimeout(syncTblScrollTop,120);}
 function renderDashboard(){
   const sl=staff();
   const total=sl.length,comp=sl.filter(s=>s.theory>=90&&s.practical==='Passed').length;
@@ -2341,7 +2403,7 @@ function renderDashboard(){
   // ── compute training progress for staff ──
   const myS=filt[0]||null;
   const _qrDash=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
-  const _ridDash=loggedInStaff?loggedInStaff.registerId:'';
+  const _ridDash=loggedInStaff?normalizeRid(loggedInStaff.registerId):'';
   // Compute theory from both staff record AND quiz results (take highest)
   const _theoryFromQR=_ridDash?(()=>{
     const passed=THEORY_MODULES.filter(function(m){return (_qrDash[_ridDash+'_m'+m.num]||0)>=90;});
@@ -2356,7 +2418,7 @@ function renderDashboard(){
   else{trnPct=0;trnColor='red';trnLabel='NOT STARTED';trnBarColor='#c0392b';}
 
   // ── Theory completion date & earliest booking date ──
-  const _theoryCompletedAt=_ridDash?(_qrDash[_ridDash+'_theoryCompletedAt']||loggedInStaff._theoryCompletedAt||0):0;
+  const _theoryCompletedAt=_ridDash?(toMs(_qrDash[_ridDash+'_theoryCompletedAt'])||toMs(loggedInStaff._theoryCompletedAt)||0):0;
   const _theoryCompletedStr=_theoryCompletedAt?new Date(_theoryCompletedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
   const _earliestBookDate=_theoryCompletedAt?new Date(_theoryCompletedAt+(7*24*60*60*1000)):null;
   const _earliestBookStr=_earliestBookDate?_earliestBookDate.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
@@ -2433,7 +2495,7 @@ function renderDashboard(){
 
     ${userRole==='staff'?(()=>{
       const qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
-      const rid=myS?myS.registerId:'';
+      const rid=normalizeRid(myS?myS.registerId:'');
       const failedMods=THEORY_MODULES.filter(m=>{const k=rid+'_m'+m.num;const sc=qr[k];return sc!==undefined&&sc<90;});
       const undoneMods=THEORY_MODULES.filter(m=>{const k=rid+'_m'+m.num;return qr[k]===undefined;});
       const allTheoryPassed=THEORY_MODULES.every(m=>{const k=rid+'_m'+m.num;return qr[k]!==undefined&&qr[k]>=90;});
@@ -2580,7 +2642,7 @@ function renderDashboard(){
               <div style="background:#f8f8f8;border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
                 ${(()=>{
                   const qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
-                  const rid=myS?myS.registerId:'';
+                  const rid=normalizeRid(myS?myS.registerId:'');
                   const modColors=[
                     {bg:'#fffbeb',border:'#fde68a',accent:'#d97706',dark:'#92400e'},  // M1 kuning
                     {bg:'#eff6ff',border:'#bfdbfe',accent:'#2563eb',dark:'#1e40af'},  // M2 biru
@@ -2629,7 +2691,7 @@ function renderDashboard(){
                     <div style="font-size:13px;font-weight:700;color:${myPrac==='Passed'?'#14532d':'#92400e'};margin-top:2px;line-height:1.5">${(()=>{
                       if(myPrac==='Passed') return 'OSCE Passed ✓';
                       if(myPrac==='Failed') return 'Failed — Click to rebook';
-                      const rid=myS?myS.registerId:'';
+                      const rid=normalizeRid(myS?myS.registerId:'');
                       const mySlot=slotsAll().find(s=>s.status==='Booked'&&(
                         (s.bookedRegisterId&&String(s.bookedRegisterId).toUpperCase()===String(rid).toUpperCase())||
                         (s.bookedBy&&myS&&s.bookedBy.toLowerCase()===myS.name.toLowerCase())
@@ -2645,7 +2707,7 @@ function renderDashboard(){
                   <span class="badge" style="background:${myPrac==='Passed'?'#dcfce7':myPrac==='Failed'?'#fee2e2':'#fde68a'};color:${myPrac==='Passed'?'#166534':myPrac==='Failed'?'#991b1b':'#92400e'}">${(()=>{
                     if(myPrac==='Passed') return 'PASSED';
                     if(myPrac==='Failed') return 'FAILED';
-                    const rid=myS?myS.registerId:'';
+                    const rid=normalizeRid(myS?myS.registerId:'');
                     const s=slotsAll().find(s=>s.status==='Booked'&&(
                       (s.bookedRegisterId&&String(s.bookedRegisterId).toUpperCase()===String(rid).toUpperCase())||
                       (s.bookedBy&&myS&&s.bookedBy.toLowerCase()===myS.name.toLowerCase())
@@ -2660,7 +2722,7 @@ function renderDashboard(){
             </div>
             ${(()=>{
               // Pro Quiz result — only show if staff has attempted it
-              const rid=myS?myS.registerId:'';
+              const rid=normalizeRid(myS?myS.registerId:'');
               const pqStored=JSON.parse(localStorage.getItem('cgp8:proquizresults')||'{}');
               const pqResult=rid?pqStored[rid]:null;
               if(!pqResult) return '';
@@ -2720,7 +2782,7 @@ function renderDashboard(){
         ${userRole==='admin'?`<div class="tbl-action-row">
           <div class="srch-wrap">
             ${svg('ic-search',13,13)}
-            <input class="srch" id="srch-staff" type="text" placeholder="Search staff..." oninput="renderDashboard()">
+            <input class="srch" id="srch-staff" type="text" placeholder="Search staff..." oninput="_rd()">
           </div>
           <button class="btn-csv" onclick="exportCSV()">${svg('ic-download',13,13,'#fff')} CSV</button>
           <button class="btn-add" onclick="openAddStaff()">${svg('ic-plus',13,13,'#111')} Add</button>
@@ -2729,24 +2791,33 @@ function renderDashboard(){
           ${['All','Staff Nurse','MO','HO'].map(r=>{
             const active=(window._roleFilter||'All')===r;
             const count=r==='All'?sl.length:sl.filter(s=>s.role===r).length;
-            return `<button onclick="window._roleFilter='${r}';renderDashboard()" style="padding:5px 12px;border-radius:8px;border:1.5px solid ${active?'var(--yellow)':'rgba(255,255,255,.15)'};background:${active?'var(--yellow)':'transparent'};color:${active?'#111':'rgba(255,255,255,.6)'};font-family:var(--font-mono);font-size:10px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;transition:.15s">${r} <span style="opacity:.7">(${count})</span></button>`;
+            return `<button onclick="window._roleFilter='${r}';_rd()" style="padding:5px 12px;border-radius:8px;border:1.5px solid ${active?'var(--yellow)':'rgba(255,255,255,.15)'};background:${active?'var(--yellow)':'transparent'};color:${active?'#111':'rgba(255,255,255,.6)'};font-family:var(--font-mono);font-size:10px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;transition:.15s">${r} <span style="opacity:.7">(${count})</span></button>`;
           }).join('')}
         </div>`:''}
       </div>
-      <div class="tbl-scroll">
-        <table>
+      <div class="tbl-scroll-top" id="tbl-top" onscroll="document.getElementById('tbl-main').scrollLeft=this.scrollLeft" style="display:none"><div id="tbl-top-inner" style="height:1px"></div></div>
+      <div class="tbl-scroll" id="tbl-main" onscroll="var t=document.getElementById('tbl-top');if(t)t.scrollLeft=this.scrollLeft">
+        <table style="min-width:1000px">
           <thead><tr>
-            <th>Name</th><th>Role</th>
-            ${userRole==='admin'?'<th>Register ID</th><th>No. IC</th><th>Email</th>':''}
+            <th class="name-th">Name</th><th>Role</th>
+            ${userRole==='admin'?'<th>Register ID</th><th>No. IC</th><th>Phone</th><th>Email</th>':''}
             <th class="tc">Theory</th><th class="tc">Theory Date</th><th class="tc">Practical</th><th class="tc">Status</th>
-            ${userRole==='admin'?'<th class="tc">Sijil</th><th class="tc">Actions</th>':''}
+            ${userRole==='admin'?'<th class="tc">Last Login</th><th class="tc">Sijil</th><th class="tc">Actions</th>':''}
           </tr></thead>
           <tbody>
             ${filt.length?filt.map(s=>{
               const _qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
-              const _rid=s.registerId||'';
-              const _tca=_rid?(_qr[_rid+'_theoryCompletedAt']||s._theoryCompletedAt||0):0;
+              const _rid=normalizeRid(s.registerId||'');
+              const _qrCacheEntry=_rid?(fsQRCache[_rid]||{}):{};
+              // Coordinator: prioritize Firestore quizResults (theoryCompletedAt → updatedAt) over localStorage
+              const _fsTheoryDate=toMs(_qrCacheEntry.theoryCompletedAt)||toMs(_qrCacheEntry.updatedAt)||0;
+              const _localTheoryDate=_rid?toMs(_qr[_rid+'_theoryCompletedAt']||s._theoryCompletedAt||0):0;
+              const _tca=_fsTheoryDate||_localTheoryDate||0;
               const _tcaStr=_tca?new Date(_tca).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
+              const _lastLogin=_rid?(parseInt(localStorage.getItem('cgp8:lastlogin_'+_rid)||'0')||toMs(s.lastLoginAt)||0):0;
+              const _updAt=toMs(s.updatedAt);
+              const _loginTxt=_lastLogin?new Date(_lastLogin).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):_updAt?('~'+new Date(_updAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})):'Never';
+              const _loginCol=_lastLogin?'#374151':_updAt?'#9ca3af':'#d1d5db';
               return `
               <tr${!s.registerId&&userRole==='admin'?' style="background:#fffbeb"':''}>
                 <td class="name-cell">${s.name}</td>
@@ -2754,17 +2825,20 @@ function renderDashboard(){
                 ${userRole==='admin'?`
                 <td><span style="font-family:var(--font-mono);font-size:12px;font-weight:700;background:${s.registerId?'#f0f0f0':'#fee2e2'};color:${s.registerId?'#111':'#991b1b'};padding:3px 8px;border-radius:6px;">${s.registerId||'⚠ No ID'}</span></td>
                 <td><span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:#555">${s.ic||'—'}</span></td>
+                <td><span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:#0369a1">${s.phone||'—'}</span></td>
                 <td><span style="font-size:12px;color:#2563eb;font-weight:600">${s.email||s.gmail||'—'}</span></td>`:''}
                 <td class="tc">${bTheory(s.theory)}</td>
                 <td class="tc"><span style="font-size:11px;font-family:var(--font-mono);font-weight:700;color:${_tca?'#16a34a':'#aaa'}">${_tcaStr}</span></td>
                 <td class="tc">${bPrac(s.practical)}</td>
                 <td class="tc">${bStatus(s.status)}</td>
                 ${userRole==='admin'?`
+                <td class="tc"><span style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:${_loginCol};white-space:nowrap">${_loginTxt}</span></td>`:''}
+                ${userRole==='admin'?`
                 <td class="tc">
                   ${s.certLink?`
                     <div style="display:flex;align-items:center;justify-content:center;gap:4px">
-                      <a href="${s.certLink}" target="_blank" rel="noopener" title="Buka Sijil" style="width:30px;height:30px;background:#dcfce7;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px">🎓</a>
-                      <button onclick="copyStaffCertLink('${s.certLink.replace(/'/g,"\\'")}')" title="Salin Link" style="width:30px;height:30px;background:#f0f0f0;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;border:none;cursor:pointer">📋</button>
+                      <a href="${s.certLink}" target="_blank" rel="noopener" style="width:30px;height:30px;background:#dcfce7;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px">🎓</a>
+                      <button onclick="copyStaffCertLink('${s.certLink.replace(/'/g,"\\'")}')" style="width:30px;height:30px;background:#f0f0f0;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;border:none;cursor:pointer">📋</button>
                     </div>`:`<span style="font-size:11px;color:#ccc;font-family:var(--font-mono);font-weight:700">—</span>`}
                 </td>
                 <td class="tbl-act-cell">
@@ -2773,7 +2847,7 @@ function renderDashboard(){
                 </td>`:''}
               </tr>`;
             }).join(''):
-              `<tr><td colspan="11" class="tbl-empty">No records found</td></tr>`}
+              `<tr><td colspan="13" class="tbl-empty">No records found</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -2922,17 +2996,17 @@ function deleteFeedbackByStaff(registerId){
   }
 
   toast('Feedback deleted. Staff must complete feedback again.','err');
-  renderDashboard();
+  _rd();
 }
 
 // ── EXPORT CERT + FEEDBACK TO CSV ─────────────────────
 function refreshFeedback(){
-  if(!fb){toast('No Firebase connection.','err');renderDashboard();return;}
+  if(!fb){toast('No Firebase connection.','err');_rd();return;}
   toast('Syncing feedback from server...');
   fb.getDocs(fb.collection(fb.db,'feedback')).then(snap=>{
     const all=snap.docs.map(d=>({...d.data(),_fsId:d.id,id:d.id}));
     localStorage.setItem('cgp8:feedback',JSON.stringify(all));
-    renderDashboard();
+    _rd();
     toast('Feedback synced ✓ ('+all.length+' records)');
   }).catch(()=>toast('Sync failed — check connection.','err'));
 }
@@ -3021,7 +3095,7 @@ function saveCertLog(){
   }
   cm('mod-cert-log');
   toast('Certificate record updated ✓');
-  renderDashboard();
+  _rd();
 }
 
 async function deleteCertLog(idx){
@@ -3069,7 +3143,7 @@ async function deleteCertLog(idx){
     }
   }
 
-  renderDashboard();
+  _rd();
   clearTimeout(_undoCertTimer);
   const t=document.getElementById('toast');
   const msg=document.getElementById('toast-msg');
@@ -3105,12 +3179,12 @@ function undoDeleteCertLog(){
   document.getElementById('toast').className='show';
   document.getElementById('toast-msg').textContent='Record & feedback restored ✓';
   setTimeout(()=>{document.getElementById('toast').className='';},2500);
-  renderDashboard();
+  _rd();
 }
 
 // ── CERT CLICK — check feedback first ─────────────────
 function handleCertClick(){
-  const rid=loggedInStaff?loggedInStaff.registerId:'';
+  const rid=normalizeRid(loggedInStaff?loggedInStaff.registerId:'');
   const allFb=JSON.parse(localStorage.getItem('cgp8:feedback')||'[]');
   const allCerts=JSON.parse(localStorage.getItem('cgp8:certs')||'[]');
   const hasFbLocal=allFb.some(f=>String(f.registerId)===String(rid));
@@ -3254,7 +3328,7 @@ function viewCoordCert(registerId){
 function openAddStaff(){
   editStaffObj=null;
   document.getElementById('staff-title').textContent='Register Staff';
-  ['st-name','st-regid','st-pass','st-certlink','st-ic','st-gmail'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  ['st-name','st-regid','st-pass','st-certlink','st-ic','st-gmail','st-phone'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
   document.getElementById('st-role').value='Staff Nurse';
   document.getElementById('st-theory').value='0';
   document.getElementById('st-prac').value='Pending';
@@ -3268,6 +3342,7 @@ function openEditStaff(id){
   document.getElementById('st-name').value=s.name;
   const icEl=document.getElementById('st-ic');if(icEl)icEl.value=s.ic||'';
   const gmailEl=document.getElementById('st-gmail');if(gmailEl)gmailEl.value=s.email||s.gmail||'';
+  const phoneEl=document.getElementById('st-phone');if(phoneEl)phoneEl.value=s.phone||'';
   document.getElementById('st-regid').value=s.registerId||'';
   document.getElementById('st-pass').value=s.password||'';
   document.getElementById('st-role').value=s.role;
@@ -3290,6 +3365,7 @@ async function saveStaff(){
   const ic=icRaw.replace(/\D/g,'').slice(0,12);
   const gmailRaw=(document.getElementById('st-gmail')||{}).value.trim().toLowerCase();
   const email=gmailRaw;
+  const phone=(document.getElementById('st-phone')||{value:''}).value.trim();
   const registerId=document.getElementById('st-regid').value.trim().toUpperCase();
   const password=document.getElementById('st-pass').value.trim();
   const role=document.getElementById('st-role').value;
@@ -3327,7 +3403,7 @@ async function saveStaff(){
     }
   }
 
-  const data={name,ic,email,gmail:email,registerId,password,role,theory,practical,status,certLink};
+  const data={name,ic,email,gmail:email,phone,registerId,password,role,theory,practical,status,certLink};
   if(theory>0&&numPassed>=THEORY_MODULES.length){
     data._theoryCompletedAt=completedAtToUse;
   }
@@ -3393,7 +3469,7 @@ async function saveStaff(){
     toast(name+' registered ✓');
   }
   cm('mod-staff');
-  renderDashboard();
+  _rd();
 }
 async function delStaff(id){
   if(!confirm('Delete this staff record? All data including quiz results, feedback and certificate will be permanently deleted.'))return;
@@ -3459,7 +3535,7 @@ async function delStaff(id){
   }
 
   toast('Staff and all related data permanently deleted.','err');
-  renderDashboard();
+  _rd();
 }
 function exportCSV(){
   const h='Name,Role,Theory(%),Practical,Status\n';
@@ -3484,7 +3560,7 @@ async function saveCertLink(){
   }
   toast('Certificate link saved ✓');
   renderTraining();
-  renderDashboard();
+  _rd();
 }
 async function deleteCertLink(){
   if(!confirm('Delete this certificate link?'))return;
@@ -3497,7 +3573,7 @@ async function deleteCertLink(){
   }
   toast('Certificate link deleted.','err');
   renderTraining();
-  renderDashboard();
+  _rd();
 }
 
 // ── TRAINING ──────────────────────────────────────────
@@ -3577,9 +3653,9 @@ function goToReferences(){
   renderTraining(); window.scrollTo(0,0);
 }
 function syncQuizScores(){
-  const rid=loggedInStaff?loggedInStaff.registerId:'';
+  const rid=normalizeRid(loggedInStaff?loggedInStaff.registerId:'');
   if(!rid){toast('Not logged in.','err');return;}
-  if(!fb){toast('No connection — showing local scores.','err');renderTraining();renderDashboard();return;}
+  if(!fb){toast('No connection — showing local scores.','err');renderTraining();_rd();return;}
   toast('Syncing scores from server...');
 
   // Pull BOTH quizResults doc AND staff doc simultaneously
@@ -3654,7 +3730,7 @@ function syncQuizScores(){
     } else {
       toast('No scores found on server.','err');
     }
-    renderDashboard();
+    _rd();
     if(activeTab==='training') renderTraining();
   }).catch(function(){
     toast('Sync failed — check internet connection.','err');
@@ -4098,7 +4174,7 @@ function renderTraining(){
   // ── VIEW: Theory module list ──
   if(staffTrainingView==='theory'){
     const qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
-    const rid=loggedInStaff?loggedInStaff.registerId:'';
+    const rid=normalizeRid(loggedInStaff?loggedInStaff.registerId:'');
     const moduleCards=THEORY_MODULES.map(function(m){
       const vid=fsVideos.find(function(v){return Number(v.moduleNum)===m.num;})
           ||(fsVideos.filter(function(v){return !v.moduleNum;})[m.num-1])||null;
@@ -4595,7 +4671,7 @@ function proQuizNext(){
     proQuizResult={correct:correct,total:proQuizState.questions.length,pct:pct};
     // Save to localStorage so dashboard can show latest result
     if(loggedInStaff&&loggedInStaff.registerId){
-      var rid=loggedInStaff.registerId;
+      var rid=normalizeRid(loggedInStaff.registerId);
       var stored=JSON.parse(localStorage.getItem('cgp8:proquizresults')||'{}');
       stored[rid]={pct:pct,correct:correct,total:proQuizState.questions.length,date:Date.now()};
       localStorage.setItem('cgp8:proquizresults',JSON.stringify(stored));
@@ -5020,7 +5096,7 @@ function renderBooking(){
   let eligibilityBanner='';
   if(userRole==='staff'&&loggedInStaff){
     const qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
-    const rid=loggedInStaff.registerId;
+    const rid=normalizeRid(loggedInStaff.registerId);
     const moduleResults=THEORY_MODULES.map(function(m){
       return {num:m.num,score:qr[rid+'_m'+m.num]||0,completedAt:qr[rid+'_m'+m.num+'_completedAt']||0};
     });
@@ -5187,7 +5263,7 @@ function renderBooking(){
 function openBook(id){
   // Check if this staff already has a booking
   if(loggedInStaff&&userRole==='staff'){
-    const rid=loggedInStaff.registerId;
+    const rid=normalizeRid(loggedInStaff.registerId);
     const existingBooking=slotsAll().find(s=>
       s.status==='Booked'&&(
         (s.bookedRegisterId&&String(s.bookedRegisterId).trim().toUpperCase()===String(rid).trim().toUpperCase())||
@@ -5204,7 +5280,7 @@ function openBook(id){
   bookSlotId=id;
   if(loggedInStaff&&userRole==='staff'){
     const qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
-    const rid=loggedInStaff.registerId;
+    const rid=normalizeRid(loggedInStaff.registerId);
     const staffTheory=loggedInStaff.theory||0;
     const allModsPassed=THEORY_MODULES.every(function(m){return (qr[rid+'_m'+m.num]||0)>=90;});
     if(!allModsPassed&&staffTheory<100){
@@ -5281,7 +5357,7 @@ async function confirmBook(){
 
   // Double-check no existing booking before confirming
   if(loggedInStaff&&userRole==='staff'){
-    const rid=loggedInStaff.registerId;
+    const rid=normalizeRid(loggedInStaff.registerId);
     const existingBooking=slotsAll().find(s=>
       s.status==='Booked'&&(s._fsId||s.id)!==bookSlotId&&(
         (s.bookedRegisterId&&String(s.bookedRegisterId).trim().toUpperCase()===String(rid).trim().toUpperCase())||
@@ -5305,7 +5381,7 @@ async function confirmBook(){
   cm('mod-book');
   toast('Booking confirmed! 📅');
   renderBooking();
-  renderDashboard();
+  _rd();
 }
 async function addSlot(){
   const hour=(document.getElementById('ns-hour')||{}).value||'';
@@ -5376,7 +5452,7 @@ function getQuizQuestions(moduleNum){
 
 function checkAllModulesPassed(){
   const results=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
-  const rid=loggedInStaff?loggedInStaff.registerId:'';
+  const rid=normalizeRid(loggedInStaff?loggedInStaff.registerId:'');
   return THEORY_MODULES.every(m=>{
     const key=rid+'_m'+m.num;
     return results[key]&&results[key]>=90;
@@ -5505,7 +5581,7 @@ function finishQuiz(){
   const pct=Math.round((score/total)*100);
   // Save quizResult IMMEDIATELY before any async
   quizResult={moduleNum:quizState.moduleNum,score,total,pct,answers:[...quizState.answers],questions:[...quizState.questions]};
-  const rid=loggedInStaff?loggedInStaff.registerId:'guest';
+  const rid=normalizeRid(loggedInStaff?loggedInStaff.registerId:'guest');
   const key=rid+'_m'+quizState.moduleNum;
 
   // ── Set view to result IMMEDIATELY (before async) ──
@@ -5608,7 +5684,7 @@ function finishQuiz(){
     // Re-render result page with updated scores/dates
     if(staffTrainingView==='quiz-result'&&quizResult) renderTraining();
     // Also refresh dashboard if visible
-    if(activeTab==='dashboard') renderDashboard();
+    if(activeTab==='dashboard') _rd();
   }
 
   if(fb&&loggedInStaff){
@@ -5874,7 +5950,7 @@ function nqUpdateRoleUI(){
   if(hint){
     if(_nqSelectedRoles.length===0){
       hint.style.color='#e74c3c';
-      hint.textContent='\u26a0 Sila pilih sekurang-kurangnya satu role';
+      hint.textContent='⚠ Sila pilih sekurang-kurangnya satu role';
     } else {
       var labels={SN:'Staff Nurse',MO:'MO',HO:'House Officer'};
       hint.style.color='#27ae60';
