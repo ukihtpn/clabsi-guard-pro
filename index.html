@@ -1804,12 +1804,15 @@ function enter(role,staffObj){
     if(fb){
       fb.getDocs(fb.collection(fb.db,'quizResults')).then(function(snap){
         fsQRCache={};
+        var existingQRIds=new Set();
         snap.docs.forEach(function(d){
           var data=d.data();
           var ridRaw=d.id||data.registerId||'';
           var rid=normalizeRid(ridRaw);
           var ridOrig=String(ridRaw).trim().toUpperCase();
           if(!rid) return;
+          existingQRIds.add(rid);
+          existingQRIds.add(ridOrig);
           // Check all possible key formats for theoryCompletedAt
           var tca=toMs(data[rid+'_theoryCompletedAt'])
             ||toMs(data[ridOrig+'_theoryCompletedAt'])
@@ -1832,6 +1835,31 @@ function enter(role,staffObj){
           };
           if(ridOrig!==rid) fsQRCache[ridOrig]=fsQRCache[rid];
         });
+
+        // Auto-recovery: for staff with theory>0 but no quizResults doc, create one
+        var staffToRecover=fsStaff.filter(function(s){
+          if(!s.registerId||!s.theory||s.theory<=0) return false;
+          var rid=normalizeRid(s.registerId);
+          var ridOrig=String(s.registerId).trim().toUpperCase();
+          return !existingQRIds.has(rid)&&!existingQRIds.has(ridOrig);
+        });
+        staffToRecover.forEach(function(s){
+          var rid=normalizeRid(s.registerId);
+          var updAt=toMs(s.updatedAt)||toMs(s._theoryCompletedAt)||Date.now();
+          var qrDoc={registerId:rid,updatedAt:fb.serverTimestamp()};
+          var numPassed=s.theory===100?4:Math.round((s.theory/100)*4);
+          for(var n=1;n<=4;n++){
+            if(n<=numPassed){
+              qrDoc[rid+'_m'+n]=s.theory===100?100:90;
+              qrDoc[rid+'_m'+n+'_completedAt']=updAt;
+            }
+          }
+          if(numPassed>=4) qrDoc[rid+'_theoryCompletedAt']=toMs(s._theoryCompletedAt)||updAt;
+          fb.setDoc(fb.doc(fb.db,'quizResults',rid),qrDoc,{merge:true}).then(function(){
+            fsQRCache[rid]={updatedAt:updAt,theoryCompletedAt:qrDoc[rid+'_theoryCompletedAt']||0};
+          }).catch(function(){});
+        });
+
         if(activeTab==='dashboard') _rd();
       }).catch(function(){});
       // Also fetch slots so OSCE booking dates show in dashboard
