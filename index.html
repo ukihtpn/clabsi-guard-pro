@@ -1815,13 +1815,20 @@ function enter(role,staffObj){
             ||toMs(data[ridOrig+'_theoryCompletedAt'])
             ||toMs(data['theoryCompletedAt'])
             ||0;
-          // If no theoryCompletedAt found but all 4 modules scored — use updatedAt
+          // Scan all keys for any _theoryCompletedAt pattern
+          if(!tca){
+            Object.keys(data).forEach(function(k){
+              if(k.endsWith('_theoryCompletedAt')&&!tca) tca=toMs(data[k]);
+            });
+          }
+          // Check if all 4 modules scored ≥90 using any key format
           var allMods=[1,2,3,4].every(function(n){
-            return (Number(data[rid+'_m'+n])||Number(data[ridOrig+'_m'+n])||0)>=90;
+            return (Number(data[rid+'_m'+n])||Number(data[ridOrig+'_m'+n])||Number(data['m'+n])||0)>=90;
           });
+          var updAt=toMs(data.updatedAt);
           fsQRCache[rid]={
-            updatedAt:toMs(data.updatedAt),
-            theoryCompletedAt:tca||(allMods?toMs(data.updatedAt):0)
+            updatedAt:updAt,
+            theoryCompletedAt:tca||(allMods?updAt:0)
           };
           if(ridOrig!==rid) fsQRCache[ridOrig]=fsQRCache[rid];
         });
