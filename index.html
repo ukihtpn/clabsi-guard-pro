@@ -1780,35 +1780,43 @@ function showRegister(){
       <div style="margin-bottom:0">Dr. Aneesa binti Tharek, IPC Unit, HTPN &nbsp;|&nbsp; Tel: 013-7386497 &nbsp;|&nbsp; Email: dr_aneesa@moh.gov.my<br>If you have concerns about how this research is conducted, you may contact the MREC Secretariat, MOH Malaysia.</div>
     </div>
 
-    <button type="button" id="consent-row" onclick="toggleConsentBtn()" data-agreed="0" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px 15px;border-radius:12px;border:2px solid rgba(39,174,96,.35);background:rgba(39,174,96,.06);cursor:pointer;margin-bottom:6px">
-      <span id="consent-tick" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:2.5px solid rgba(39,174,96,.5);display:flex;align-items:center;justify-content:center;transition:.15s;background:transparent">
-        <svg id="consent-tick-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:0;transition:.15s"><polyline points="20 6 9 17 4 12"/></svg>
-      </span>
-      <span style="font-size:11.5px;color:#166534;font-weight:600;line-height:1.5">I have read and understood the Participant Information Sheet above. I understand my participation is <strong>voluntary</strong>, that I may withdraw at any time without consequence, and that my data will be kept confidential and used only for this study (and may appear in anonymised academic publications). I <strong>voluntarily consent</strong> to participate.<br><span id="consent-tap-hint" style="color:#16a34a;font-weight:800;text-transform:uppercase;font-size:10px;letter-spacing:.05em">Tap here to agree</span></span>
+    <div style="font-size:10.5px;font-weight:900;color:#334155;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Please select one:</div>
+
+    <button type="button" id="consent-agree" onclick="selectConsent('agree')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 15px;border-radius:12px;border:2px solid rgba(39,174,96,.35);background:rgba(39,174,96,.06);cursor:pointer;margin-bottom:8px;transition:.15s">
+      <span id="ctick-agree" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(39,174,96,.5);display:flex;align-items:center;justify-content:center;transition:.15s;background:transparent;color:#fff;font-weight:900;font-size:14px;line-height:1"></span>
+      <span style="font-size:11.5px;color:#166534;font-weight:600;line-height:1.5"><strong>I AGREE</strong> — I have read and understood the Participant Information Sheet above. I understand my participation is <strong>voluntary</strong> and I may withdraw at any time. I <strong>voluntarily consent</strong> to participate and allow my anonymised data to be used for this study.</span>
     </button>
+
+    <button type="button" id="consent-decline" onclick="selectConsent('decline')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 15px;border-radius:12px;border:2px solid rgba(148,163,184,.45);background:rgba(148,163,184,.08);cursor:pointer;margin-bottom:6px;transition:.15s">
+      <span id="ctick-decline" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(148,163,184,.6);display:flex;align-items:center;justify-content:center;transition:.15s;background:transparent;color:#fff;font-weight:900;font-size:14px;line-height:1"></span>
+      <span style="font-size:11.5px;color:#475569;font-weight:600;line-height:1.5"><strong>I DO NOT AGREE</strong> — I do not consent to my data being used for research purposes. <span style="color:#0369a1;font-weight:700">I understand I can still register and must complete this CLABSI competency training as usual.</span></span>
+    </button>
+
     <div class="pw-err" id="consent-err"></div>
-    <button class="login-btn green" onclick="proceedAfterConsent()" style="margin-top:10px">I Agree &amp; Continue →</button>`;
+    <button class="login-btn green" onclick="proceedAfterConsent()" style="margin-top:10px">Continue →</button>`;
 }
-function toggleConsentBtn(){
-  var row=document.getElementById('consent-row');
-  var tick=document.getElementById('consent-tick');
-  var tickSvg=document.getElementById('consent-tick-svg');
-  var hint=document.getElementById('consent-tap-hint');
-  if(!row)return;
-  var agreed=row.getAttribute('data-agreed')==='1';
-  agreed=!agreed;
-  row.setAttribute('data-agreed',agreed?'1':'0');
-  row.style.borderColor=agreed?'#27ae60':'rgba(39,174,96,.35)';
-  row.style.background=agreed?'rgba(39,174,96,.16)':'rgba(39,174,96,.06)';
-  tick.style.background=agreed?'#27ae60':'transparent';
-  tick.style.borderColor=agreed?'#27ae60':'rgba(39,174,96,.5)';
-  tickSvg.style.opacity=agreed?'1':'0';
-  if(hint)hint.textContent=agreed?'✓ Agreed':'Tap here to agree';
+var regConsentChoice=null;
+function selectConsent(choice){
+  regConsentChoice=choice;
+  var a=document.getElementById('consent-agree'),d=document.getElementById('consent-decline');
+  var ta=document.getElementById('ctick-agree'),td=document.getElementById('ctick-decline');
+  if(!a||!d||!ta||!td)return;
+  var on=(choice==='agree');
+  a.style.borderColor=on?'#27ae60':'rgba(39,174,96,.35)';
+  a.style.background=on?'rgba(39,174,96,.16)':'rgba(39,174,96,.06)';
+  ta.style.background=on?'#27ae60':'transparent';
+  ta.style.borderColor=on?'#27ae60':'rgba(39,174,96,.5)';
+  ta.textContent=on?'✓':'';
+  d.style.borderColor=!on?'#e67e22':'rgba(148,163,184,.45)';
+  d.style.background=!on?'rgba(230,126,34,.14)':'rgba(148,163,184,.08)';
+  td.style.background=!on?'#e67e22':'transparent';
+  td.style.borderColor=!on?'#e67e22':'rgba(148,163,184,.6)';
+  td.textContent=!on?'✓':'';
+  var err=document.getElementById('consent-err');if(err)err.textContent='';
 }
 function proceedAfterConsent(){
-  const row=document.getElementById('consent-row');
-  if(!row||row.getAttribute('data-agreed')!=='1'){document.getElementById('consent-err').textContent='Please tap the box above to agree before continuing.';return;}
-  try{localStorage.setItem('cgp8:lastConsentAt',String(Date.now()));}catch(e){}
+  if(regConsentChoice!=='agree'&&regConsentChoice!=='decline'){document.getElementById('consent-err').textContent='Please select one option above before continuing.';return;}
+  try{localStorage.setItem('cgp8:regConsent',regConsentChoice);localStorage.setItem('cgp8:lastConsentAt',String(Date.now()));}catch(e){}
   showRegisterForm();
 }
 
@@ -1877,7 +1885,8 @@ async function doRegister(){
   if(allStaff.find(s=>s.ic&&s.ic===ic)){errEl.textContent='An account with this IC number already exists.';return;}
   const rid=autoGenerateRegisterId(role);
   const id='s'+Date.now();
-  const newStaff={id,name,role,registerId:rid,ic,email,gmail:email,phone,theory:0,practical:'Pending',status:'Not Started',password:pw,createdAt:Date.now(),consentGiven:true,consentAt:Date.now()};
+  const _consChoice=(function(){try{return localStorage.getItem('cgp8:regConsent')||'agree';}catch(e){return 'agree';}})();
+  const newStaff={id,name,role,registerId:rid,ic,email,gmail:email,phone,theory:0,practical:'Pending',status:'Not Started',password:pw,createdAt:Date.now(),consentGiven:_consChoice==='agree',consentDecision:_consChoice,consentAt:Date.now()};
   if(fb){await fsSet('staff',id,{...newStaff,createdAt:fb.serverTimestamp()});}
   localStaff=[...localStaff,newStaff];
   localStorage.setItem('cgp8:staff',JSON.stringify(localStaff));
@@ -6796,8 +6805,10 @@ function renderBooking(){
       allSlots.forEach(function(s){
         const raw=(s.trainer||'').toUpperCase().trim();
         // Count slot for ALL trainers that appear in trainer field
+        // Word-boundary match — prevents "SN MARIA" wrongly matching inside "SN MARIAM"
         TRAINERS.forEach(function(t){
-          if(raw.indexOf(t)>-1){
+          const re=new RegExp('\\b'+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b');
+          if(re.test(raw)){
             if(s.status==='Booked')trainerMap[t].booked.push(s);
             else if(s.status==='Available')trainerMap[t].available.push(s);
           }
@@ -6845,7 +6856,12 @@ function renderBooking(){
                 +'<td style="padding:5px 10px;">'+(isBooked?'<span style="background:#dcfce7;color:#166534;font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;">Booked</span>':'<span style="background:#dbeafe;color:#1d4ed8;font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;">Available</span>')+'</td>'
                 +'<td style="padding:5px 10px;font-weight:700;color:#166534;">'+(isBooked?s.bookedBy||'-':'—')+'</td>'
                 +'<td style="padding:5px 10px;color:#555;">'+(isBooked?s.bookedRole||'-':'—')+'</td>'
-                +'<td style="padding:5px 10px;color:#555;">'+(isBooked?s.phone||'—':'—')+'</td>'
+                +'<td style="padding:5px 10px;color:#555;white-space:nowrap;">'+(isBooked?((s.phone||'—')+(s.phone?(function(){
+                  var ph=String(s.phone).replace(/[^0-9]/g,'');
+                  if(ph.charAt(0)==='0')ph='6'+ph;
+                  var msg='Assalamualaikum '+(s.bookedBy||'')+',\n\nPERINGATAN OSCE - CLABSI Guard Pro\n\nTarikh: '+s.date+'\nMasa: '+s.time+'\nPenilai: '+(s.trainer||'')+'\n\nSila hadir 10 minit awal. Bawa kad pengenalan.\n\n- IPC Unit HTPN';
+                  return ' <a href="https://wa.me/'+ph+'?text='+encodeURIComponent(msg)+'" target="_blank" onclick="event.stopPropagation()" style="display:inline-block;background:#25d366;color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:5px;text-decoration:none;margin-left:5px;vertical-align:middle;">📱 WA</a>';
+                })():'')):'—')+'</td>'
                 +'</tr>';
             }).join('')
             +'</tbody></table></div>'
