@@ -3591,7 +3591,7 @@ function calcStatus(t,p){return t>=90&&p==='Passed'?'Completed':t===0?'Not Start
 //   4) OSCE slot booked         -> remind them of the booked OSCE date/time
 //   5) OSCE passed / all done   -> congratulate (no action needed)
 function buildStaffReminderMsg(s){
-  const APP_URL='clbsiguard.vercel.app';
+  const APP_URL='https://clabsi-guard-pro.vercel.app/';
   const t=s.theory||0;
   const rid=(s.registerId||'').toUpperCase();
   // Find this staff's booked OSCE slot (if any)
@@ -7286,22 +7286,19 @@ async function confirmBook(){
 
   const slot=slotsAll().find(s=>(s._fsId||s.id)===bookSlotId);if(!slot)return;
   const bookedRegisterId=loggedInStaff?loggedInStaff.registerId:'';
-  const updated={...slot,status:'Booked',bookedBy:name,phone,bookedRole:role,bookedRegisterId,emailPending:true};
+  // emailPending:true  → asks the cron to send the confirmation.
+  // emailSent:false    → durable marker the cron flips to true AFTER sending.
+  // The cron sends whenever a Booked slot has emailSent !== true, so even if
+  // timing is off, the email still goes out exactly once (and never twice).
+  const updated={...slot,status:'Booked',bookedBy:name,phone,bookedRole:role,bookedRegisterId,emailPending:true,emailSent:false};
   const id=slot._fsId||slot.id;
   if(fb)await fsSet('slots',String(id),updated);
   localSlots=localSlots.map(s=>(s._fsId||s.id)===id?updated:s);
   localStorage.setItem('cgp8:slots',JSON.stringify(localSlots));
   cm('mod-book');
   toast('Booking confirmed! 📅');
-  // Email delivery is handled server-side by the Apps Script cron
-  // (checkPendingEmails, runs every minute): it reads slots where
-  // emailPending===true, sends the confirmation to the staff + both
-  // coordinators, then flips emailPending to false itself. We deliberately
-  // do NOT try to send directly from the browser here — the old hidden-iframe
-  // GET call was unreliable (silently failed), and clearing the flag after a
-  // few seconds meant the cron never caught it either, so no email went out.
-  // Leaving emailPending:true and letting the cron own the whole flow is
-  // reliable and cannot double-send.
+  // Email is sent server-side by the Apps Script cron (checkPendingEmails).
+  // No browser-side sending here — that path was unreliable.
   renderBooking();
   _rd();
 }
