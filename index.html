@@ -5672,7 +5672,7 @@ function renderTraining(){
     const sopH=fsImages.length?`<div class="img-grid">${fsImages.map(img=>`
       <div class="img-card">
         <button class="img-del" onclick="delContent('sopImages','${img._fsId||img.id}')">${svg('ic-trash',12,12,'#fff')}</button>
-        <div class="img-frame" onclick="openZoom('${driveThumb(img.url)}','${img.name.replace(/'/g,"\\'")}')"><img src="${driveThumb(img.url)}" alt="${img.name}" onerror="this.parentNode.innerHTML='<div style=\\'padding:20px;text-align:center;color:#aaa\\'><p style=\\'font-size:11px;font-weight:700\\'>Image unavailable. Use Imgur/ImgBB direct link.</p></div>'"></div>
+        <div class="img-frame" onclick="openZoom('${driveThumb(img.url)}','${img.name.replace(/'/g,"\\'")}')"><img src="${driveThumb(img.url)}" alt="${img.name}" data-gid="${(img.url.match(/\/d\/([a-zA-Z0-9_-]+)/)||[])[1]||''}" data-open="${img.url}" data-try="0" referrerpolicy="no-referrer" onerror="sumImgFallback(this)"></div>
         <div class="img-foot"><div class="img-dot"></div><p>${img.name}</p></div>
       </div>`).join('')}</div>`:
       `<div class="empty-box"><div class="empty-ico">${svg('ic-image',22,22,'#ccc')}</div><div class="empty-txt">No SOP images uploaded</div></div>`;
@@ -6156,14 +6156,6 @@ function renderTraining(){
         <div style="font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,.7);font-weight:700">Select a module — watch video &amp; complete the quiz</div>
       </div>
       <div class="tip-box">${svg('ic-bulb',18,18,'#d97706')}<div><div class="tip-title">Theory Instructions</div><div class="tip-body">Complete all <strong>4 theory modules</strong> in order. Minimum score of <strong>90%</strong> required to pass each module.</div></div></div>
-      <div style="background:#fff;border:2px solid #e2e8f0;border-radius:16px;padding:14px 16px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-          <div style="width:26px;height:26px;background:linear-gradient(135deg,#0C447C,#2563eb);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🗺️</div>
-          <div style="font-family:var(--font-head);font-size:13px;font-weight:900;color:#0C447C;text-transform:uppercase;letter-spacing:.04em">Your OSCE Day — What to Expect</div>
-        </div>
-        <div style="font-size:11px;color:#64748b;font-family:var(--font-mono);font-weight:700;margin-bottom:10px;line-height:1.5">Tap the image to view full screen. Total OSCE duration: 90 min · Arrive by 2:30 PM at Main Office, UKI.</div>
-        <img src="${OSCE_FLOW_IMG}" alt="OSCE process flow" onclick="openOsceGuide()" style="width:100%;height:auto;border-radius:10px;border:1px solid #e2e8f0;cursor:zoom-in;display:block">
-      </div>
       <div>
         <div class="tab-strip yellow" style="display:flex;align-items:center">
           <div class="tab-strip-icon black20">${svg('ic-play',14,14,'#111')}</div>
@@ -6405,7 +6397,7 @@ function renderTraining(){
       ${fsImages.map(img=>`
         <div style="border-radius:12px;overflow:hidden;border:2px solid #ddd;background:#fff;cursor:zoom-in;box-shadow:0 2px 8px rgba(0,0,0,.08)" onclick="openZoom('${driveThumb(img.url)}','${img.name.replace(/'/g,"\\'")}')">
           <div style="position:relative;background:#f0f0f0;max-height:320px;overflow:hidden;display:flex;align-items:center;justify-content:center">
-            <img src="${driveThumb(img.url)}" alt="${img.name}" style="width:100%;max-height:320px;object-fit:contain;display:block" onerror="this.parentNode.innerHTML='<div style=\\'padding:20px;text-align:center;color:#aaa\\'><p>Image unavailable</p></div>'">
+            <img src="${driveThumb(img.url)}" alt="${img.name}" data-gid="${(img.url.match(/\/d\/([a-zA-Z0-9_-]+)/)||[])[1]||''}" data-open="${img.url}" data-try="0" referrerpolicy="no-referrer" style="width:100%;max-height:320px;object-fit:contain;display:block" onerror="sumImgFallback(this)">
             <div style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;font-family:var(--font-mono);letter-spacing:.05em">🔍 Tap to zoom</div>
           </div>
           <div style="padding:8px 12px;display:flex;align-items:center;gap:8px;background:#fff;border-top:1px solid #eee">
