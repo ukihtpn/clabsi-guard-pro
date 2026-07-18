@@ -94,6 +94,18 @@ a{text-decoration:none}
 /* ── PAGE HEADER ── */
 #ph{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;background:#c0392b;color:#fff;transition:background .25s;background-size:220% 220%;animation:phShift 5s ease-in-out infinite}
 @keyframes phShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes alertPulseRed{0%,100%{box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 0 0 rgba(226,60,60,.55)}50%{box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 0 8px rgba(226,60,60,0)}}
+@keyframes alertPulseAmber{0%,100%{box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 0 0 rgba(245,158,11,.55)}50%{box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 0 8px rgba(245,158,11,0)}}
+@keyframes alertPulseGreen{0%,100%{box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 0 0 rgba(30,174,87,.5)}50%{box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 0 8px rgba(30,174,87,0)}}
+.alert-pulse-red{animation:alertPulseRed 1.5s ease-in-out infinite}
+.alert-pulse-amber{animation:alertPulseAmber 1.6s ease-in-out infinite}
+.alert-pulse-green{animation:alertPulseGreen 1.8s ease-in-out infinite}
+@keyframes alertPulseBlue{0%,100%{box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 0 0 rgba(37,99,235,.5)}50%{box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 0 8px rgba(37,99,235,0)}}
+@keyframes alertPulseOrange{0%,100%{box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 0 0 rgba(234,88,12,.55)}50%{box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 0 8px rgba(234,88,12,0)}}
+.alert-pulse-blue{animation:alertPulseBlue 1.7s ease-in-out infinite}
+.alert-pulse-orange{animation:alertPulseOrange 1.5s ease-in-out infinite}
+@keyframes alertPulseGold{0%,100%{box-shadow:0 5px 16px rgba(0,0,0,.3),0 0 0 0 rgba(241,196,15,.9);border-color:#f1c40f}50%{box-shadow:0 5px 16px rgba(0,0,0,.3),0 0 0 11px rgba(241,196,15,0);border-color:#fff4b0}}
+.alert-pulse-gold{animation:alertPulseGold 1.3s ease-in-out infinite}
 .ph-left h1{font-size:24px;font-weight:900;text-transform:uppercase;color:#fff;font-family:var(--font-head);text-shadow:0 1px 3px rgba(0,0,0,.35)}
 .ph-divider{height:3px;width:100%;max-width:300px;margin:7px 0 8px;border-radius:2px;background:linear-gradient(90deg,#f4d03f,rgba(244,208,63,.05));box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .ph-left p{font-size:11px;color:rgba(255,255,255,.75);text-transform:uppercase;letter-spacing:.1em;margin-top:3px;font-family:var(--font-mono);font-weight:700}
@@ -128,7 +140,13 @@ a{text-decoration:none}
 .hero{background:linear-gradient(135deg,#111 0%,var(--red) 100%);border-radius:16px;padding:20px;color:#fff;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;top:-25px;right:-25px;width:120px;height:120px;background:rgba(241,196,15,.15);border-radius:50%}
 .hero::after{content:'';position:absolute;bottom:-35px;left:-15px;width:90px;height:90px;background:rgba(255,255,255,.06);border-radius:50%}
-.hero-top{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1;gap:12px;flex-wrap:wrap}
+.hero-chip{display:inline-block;max-width:330px;margin:0;padding:10px 13px;border-radius:11px;color:#fff;font-family:var(--font-mono);text-align:left;cursor:pointer;border:2px solid #f1c40f;box-shadow:0 5px 16px rgba(0,0,0,.3)}
+.hero-chip-head{display:flex;align-items:center;justify-content:flex-start;gap:7px;font-size:12.5px;font-weight:900;line-height:1.35;white-space:nowrap}
+.hero-chip-ico{font-size:19px;line-height:1;flex-shrink:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.hero-chip-cta{font-size:11px;font-weight:700;margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.28)}
+.hero-chip-left{text-align:left;max-width:330px}
+.hero-chip-left .hero-chip-head{justify-content:flex-start;white-space:nowrap}
 .hero-lbl{font-size:12px;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.18em;font-family:var(--font-mono);margin-bottom:6px;font-weight:700}
 .hero-pct{font-size:64px;font-weight:900;line-height:1;display:inline-flex;align-items:baseline;gap:4px;font-family:var(--font-head)}
 .hero-pct sup{font-size:26px;color:rgba(255,255,255,.7);font-weight:900}
@@ -384,7 +402,7 @@ td.role-cell{font-size:14px;color:#111;font-weight:700}
 .trn-progress-wrap.p-red{border-color:rgba(192,57,43,.3);background:linear-gradient(135deg,#fff 70%,rgba(192,57,43,.04))}
 .trn-progress-wrap.p-yellow{border-color:rgba(241,196,15,.5);background:linear-gradient(135deg,#fff 70%,rgba(241,196,15,.07))}
 .trn-progress-wrap.p-green{border-color:rgba(39,174,96,.35);background:linear-gradient(135deg,#fff 70%,rgba(39,174,96,.06))}
-.trn-prog-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.12em;font-family:var(--font-mono);font-weight:700;margin-bottom:4px}
+.trn-prog-label{font-size:17px;color:#111;text-transform:uppercase;letter-spacing:.1em;font-family:var(--font-mono);font-weight:900;margin-bottom:8px}
 .trn-prog-title{font-size:15px;font-weight:900;text-transform:uppercase;font-family:var(--font-head);color:#111;margin-bottom:12px}
 .trn-prog-bar-track{height:14px;background:#f0f0f0;border-radius:99px;overflow:hidden;margin-bottom:6px;position:relative}
 .trn-prog-bar-fill{height:100%;border-radius:99px;transition:width 1.2s ease;position:relative}
@@ -536,7 +554,7 @@ td.role-cell{font-size:14px;color:#111;font-weight:700}
 
 /* Inner card background to cover the border */
 .login-card-inner{
-  background:linear-gradient(135deg,#0a0a0f,#2d0a08,#0a0a0f);
+  background:linear-gradient(135deg,#0a0a0f,#1f0705,#0a0a0f);
   background-size:240% 240%;
   animation:phShift 7s ease-in-out infinite;
   border-radius:27px;
@@ -3926,6 +3944,31 @@ function renderDashboard(){
       +'</div>';
   }
 
+  // ── Compact reminder chip shown inside the hero (staff) ──
+  let heroChip='';
+  if(userRole==='staff'){
+    const _qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
+    const _rid=normalizeRid(myS?myS.registerId:'');
+    const _failed=THEORY_MODULES.filter(m=>{const k=_rid+'_m'+m.num;const sc=_qr[k];return sc!==undefined&&sc<90;});
+    const _undone=THEORY_MODULES.filter(m=>{const k=_rid+'_m'+m.num;return _qr[k]===undefined;});
+    const _allPassed=THEORY_MODULES.every(m=>{const k=_rid+'_m'+m.num;return _qr[k]!==undefined&&_qr[k]>=90;});
+    const _slot=(typeof slotsAll==='function'?slotsAll():[]).find(s=>s&&s.status==='Booked'&&(
+      (s.bookedRegisterId&&String(s.bookedRegisterId).toUpperCase()===String(myS?myS.registerId:'').toUpperCase())||
+      (s.bookedBy&&myS&&String(s.bookedBy).toLowerCase()===String(myS.name).toLowerCase())));
+    let _c=null;
+    if(_failed.length>0) _c={icon:'⚠️',t:'Retake failed module'+(_failed.length>1?'s':''),cta:'👉 Tap here to retake',g:'linear-gradient(135deg,#ea580c,#c2410c)',p:'alert-pulse-orange',go:'training'};
+    else if(_undone.length===THEORY_MODULES.length&&myTheory<1) _c={icon:'⚠️',t:'Please start your theory',cta:'👉 Tap here to start theory',g:'linear-gradient(135deg,#e23c3c,#b02121)',p:'alert-pulse-red',go:'training'};
+    else if(_undone.length>0&&!_allPassed) _c={icon:'⚠️',t:'Continue theory ('+(THEORY_MODULES.length-_undone.length)+'/'+THEORY_MODULES.length+')',cta:'👉 Tap here to complete theory',g:'linear-gradient(135deg,#2563eb,#1e40af)',p:'alert-pulse-blue',go:'training'};
+    else if(_allPassed&&myPrac==='Pending'){
+      if(_slot){
+        const _d=new Date(_slot.date+'T00:00:00');
+        const _ds=isNaN(_d.getTime())?_slot.date:_d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+        _c={icon:'⚠️',t:'OSCE: '+_ds+' · '+_slot.time,cta:'Arrive 10 min early · Main Office, UKI',left:true,g:'linear-gradient(135deg,#1eae57,#15803d)',p:'alert-pulse-green',go:'booking'};
+      } else _c={icon:'⚠️',t:'Please book your OSCE slot',cta:'👉 Tap here to book OSCE',g:'linear-gradient(135deg,#f6a609,#d97706)',p:'alert-pulse-amber',go:'booking'};
+    } else if(_allPassed&&myPrac==='Passed') _c={icon:'🏆',t:'Competent — CLABSI Certified',cta:'All requirements completed ✅',g:'linear-gradient(135deg,#1eae57,#15803d)',go:'training'};
+    if(_c) heroChip=`<div class="hero-chip alert-pulse-gold${_c.left?' hero-chip-left':''}" onclick="go('${_c.go}')" style="background:${_c.g}"><div class="hero-chip-head"><span class="hero-chip-ico">${_c.icon}</span><span>${_c.t}</span></div>${_c.cta?`<div class="hero-chip-cta">${_c.cta}</div>`:''}</div>`;
+  }
+
   document.getElementById('pg-dashboard').innerHTML=`
     <!-- HERO -->
     <div class="hero">
@@ -3964,48 +4007,73 @@ function renderDashboard(){
           <button onclick="syncQuizScores()" style="padding:10px 14px;background:linear-gradient(90deg,#7c3aed,#a855f7);color:#fff;border-radius:10px;border:none;cursor:pointer;font-family:var(--font-head);font-size:12px;font-weight:900;text-transform:uppercase;white-space:nowrap;flex-shrink:0">🔄 Restore</button>
         </div>`;
       } else if(failedMods.length>0){
-        banner=`<div onclick="go('training')" style="background:#fff5f5;border:2px solid #fca5a5;border-radius:14px;padding:14px 16px;cursor:pointer;transition:.15s;display:flex;align-items:flex-start;gap:12px"
-          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 14px rgba(192,57,43,.15)'"
-          onmouseout="this.style.transform='none';this.style.boxShadow='none'">
-          <div style="width:38px;height:38px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">📝</div>
+        banner=`<div class="alert-pulse-orange" onclick="go('training')" style="background:linear-gradient(135deg,#ea580c,#c2410c);border-radius:16px;padding:15px 17px;cursor:pointer;transition:.15s;display:flex;align-items:flex-start;gap:13px;color:#fff"
+          onmouseover="this.style.transform='translateY(-1px)'"
+          onmouseout="this.style.transform='none'">
+          <div style="width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px">📝</div>
           <div style="flex:1">
-            <div style="font-family:var(--font-head);font-size:13px;font-weight:900;color:#991b1b;text-transform:uppercase;margin-bottom:4px">Complete Theory Modules</div>
-            <div style="font-size:12px;color:#7f1d1d;font-family:var(--font-mono);font-weight:700;margin-bottom:8px">You must pass all theory modules (≥90%) <strong>and</strong> the practical session to receive your Certificate of Competency.</div>
+            <div style="font-family:var(--font-head);font-size:14px;font-weight:900;text-transform:uppercase;margin-bottom:4px;text-shadow:0 1px 3px rgba(0,0,0,.25)">Complete Theory Modules</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.95);font-family:var(--font-mono);font-weight:700;margin-bottom:8px;line-height:1.5">You must pass all theory modules (≥90%) <strong>and</strong> the practical session to receive your Certificate of Competency.</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              ${failedMods.map(m=>`<span style="font-size:10px;padding:3px 9px;border-radius:6px;background:#fee2e2;color:#991b1b;font-family:var(--font-mono);font-weight:700">Modul ${m.num} — GAGAL</span>`).join('')}
-              ${undoneMods.map(m=>`<span style="font-size:10px;padding:3px 9px;border-radius:6px;background:#f3f4f6;color:#555;font-family:var(--font-mono);font-weight:700">Module ${m.num} — PENDING</span>`).join('')}
+              ${failedMods.map(m=>`<span style="font-size:10px;padding:3px 9px;border-radius:6px;background:rgba(0,0,0,.3);color:#fff;font-family:var(--font-mono);font-weight:700">Module ${m.num} — FAILED</span>`).join('')}
+              ${undoneMods.map(m=>`<span style="font-size:10px;padding:3px 9px;border-radius:6px;background:rgba(255,255,255,.2);color:#fff;font-family:var(--font-mono);font-weight:700">Module ${m.num} — PENDING</span>`).join('')}
             </div>
           </div>
-          <svg style="width:16px;height:16px;color:#fca5a5;flex-shrink:0;margin-top:2px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg style="width:16px;height:16px;color:rgba(255,255,255,.8);flex-shrink:0;margin-top:2px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>`;
+      } else if(undoneMods.length===THEORY_MODULES.length&&myTheory<1){
+        banner=`<div class="alert-pulse-red" onclick="go('training')" style="background:linear-gradient(135deg,#e23c3c,#b02121);border-radius:16px;padding:15px 17px;cursor:pointer;display:flex;align-items:flex-start;gap:13px;color:#fff">
+          <div style="width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px">📝</div>
+          <div style="flex:1">
+            <div style="font-family:var(--font-head);font-size:14px;font-weight:900;text-transform:uppercase;margin-bottom:4px;text-shadow:0 1px 3px rgba(0,0,0,.25)">Please Start Your Theory Session</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.92);font-family:var(--font-mono);font-weight:700;line-height:1.5">You haven't started your CLABSI theory training yet. Tap here to begin your first module.</div>
+          </div>
+          <svg style="width:16px;height:16px;color:rgba(255,255,255,.8);flex-shrink:0;margin-top:2px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </div>`;
       } else if(undoneMods.length>0&&!allTheoryPassed){
-        banner=`<div onclick="go('training')" style="background:#fffbeb;border:2px solid #fde68a;border-radius:14px;padding:14px 16px;cursor:pointer;transition:.15s;display:flex;align-items:flex-start;gap:12px"
-          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 14px rgba(217,119,6,.15)'"
-          onmouseout="this.style.transform='none';this.style.boxShadow='none'">
-          <div style="width:38px;height:38px;background:#d97706;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">📚</div>
+        banner=`<div class="alert-pulse-blue" onclick="go('training')" style="background:linear-gradient(135deg,#2563eb,#1e40af);border-radius:16px;padding:15px 17px;cursor:pointer;transition:.15s;display:flex;align-items:flex-start;gap:13px;color:#fff"
+          onmouseover="this.style.transform='translateY(-1px)'"
+          onmouseout="this.style.transform='none'">
+          <div style="width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px">📚</div>
           <div style="flex:1">
-            <div style="font-family:var(--font-head);font-size:13px;font-weight:900;color:#92400e;text-transform:uppercase;margin-bottom:4px">Continue Theory Training</div>
-            <div style="font-size:12px;color:#78350f;font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Watch the videos and complete the quiz. Pass theory <strong>and</strong> practical to receive your Certificate of Competency.</div>
+            <div style="font-family:var(--font-head);font-size:14px;font-weight:900;text-transform:uppercase;margin-bottom:4px;text-shadow:0 1px 3px rgba(0,0,0,.25)">Continue Theory Training</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.95);font-family:var(--font-mono);font-weight:700;margin-bottom:8px;line-height:1.5">You've started — keep going! Watch the videos and complete the quiz. Pass theory <strong>and</strong> practical to receive your Certificate of Competency.</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              ${undoneMods.map(m=>`<span style="font-size:10px;padding:3px 9px;border-radius:6px;background:#fde68a;color:#92400e;font-family:var(--font-mono);font-weight:700">Module ${m.num} — PENDING</span>`).join('')}
+              ${undoneMods.map(m=>`<span style="font-size:10px;padding:3px 9px;border-radius:6px;background:rgba(255,255,255,.2);color:#fff;font-family:var(--font-mono);font-weight:700">Module ${m.num} — PENDING</span>`).join('')}
             </div>
           </div>
-          <svg style="width:16px;height:16px;color:#fde68a;flex-shrink:0;margin-top:2px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg style="width:16px;height:16px;color:rgba(255,255,255,.8);flex-shrink:0;margin-top:2px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </div>`;
       } else if(allTheoryPassed&&myPrac==='Pending'){
-        banner=`<div onclick="go('booking')" style="background:#f0fdf4;border:2px solid #86efac;border-radius:14px;padding:14px 16px;cursor:pointer;transition:.15s;display:flex;align-items:flex-start;gap:12px"
-          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 14px rgba(22,163,74,.18)'"
-          onmouseout="this.style.transform='none';this.style.boxShadow='none'">
-          <div style="width:38px;height:38px;background:#16a34a;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🏥</div>
-          <div style="flex:1">
-            <div style="font-family:var(--font-head);font-size:13px;font-weight:900;color:#166534;text-transform:uppercase;margin-bottom:4px">Tahniah! Theory Selesai 🎉</div>
-            <div style="font-size:12px;color:#14532d;font-family:var(--font-mono);font-weight:700;margin-bottom:8px">All theory modules passed! One more step — pass the <strong>practical (OSCE)</strong> session to receive your CLABSI Certificate of Competency.</div>
-            <div style="display:inline-flex;align-items:center;gap:6px;background:#16a34a;color:#fff;padding:6px 14px;border-radius:8px;font-family:var(--font-mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">📅 Book Slot Sekarang →</div>
-          </div>
-          <svg style="width:16px;height:16px;color:#86efac;flex-shrink:0;margin-top:2px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>`;
+        const _osceSlot=(typeof slotsAll==='function'?slotsAll():[]).find(s=>s&&s.status==='Booked'&&(
+          (s.bookedRegisterId&&String(s.bookedRegisterId).toUpperCase()===String(myS?myS.registerId:'').toUpperCase())||
+          (s.bookedBy&&myS&&String(s.bookedBy).toLowerCase()===String(myS.name).toLowerCase())
+        ));
+        if(_osceSlot){
+          const _d=new Date(_osceSlot.date+'T00:00:00');
+          const _ds=isNaN(_d.getTime())?_osceSlot.date:_d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+          banner=`<div class="alert-pulse-green" style="background:linear-gradient(135deg,#1eae57,#15803d);border-radius:16px;padding:15px 17px;display:flex;align-items:flex-start;gap:13px;color:#fff">
+            <div style="width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px">📅</div>
+            <div style="flex:1">
+              <div style="font-family:var(--font-head);font-size:14px;font-weight:900;text-transform:uppercase;margin-bottom:4px;text-shadow:0 1px 3px rgba(0,0,0,.25)">Your OSCE Is Booked ✅</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.95);font-family:var(--font-mono);font-weight:700;line-height:1.6">Please arrive <strong>10 minutes before ${_osceSlot.time}</strong> at the <strong>Main Office, UKI</strong>.<br>Date: <strong style="font-size:13px">${_ds}</strong>${_osceSlot.trainer?'<br>Trainer / Incharge: <strong>'+_osceSlot.trainer+'</strong>':''}</div>
+            </div>
+          </div>`;
+        } else {
+          banner=`<div class="alert-pulse-amber" onclick="go('booking')" style="background:linear-gradient(135deg,#f6a609,#d97706);border-radius:16px;padding:15px 17px;cursor:pointer;transition:.15s;display:flex;align-items:flex-start;gap:13px;color:#fff"
+            onmouseover="this.style.transform='translateY(-1px)'"
+            onmouseout="this.style.transform='none'">
+            <div style="width:40px;height:40px;background:rgba(255,255,255,.22);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px">🏥</div>
+            <div style="flex:1">
+              <div style="font-family:var(--font-head);font-size:14px;font-weight:900;text-transform:uppercase;margin-bottom:4px;text-shadow:0 1px 3px rgba(0,0,0,.2)">Congratulations! Theory Completed 🎉</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.95);font-family:var(--font-mono);font-weight:700;margin-bottom:8px;line-height:1.5">All theory modules passed! One more step — <strong>please make your booking</strong> for the practical (OSCE) session to receive your CLABSI Certificate of Competency.</div>
+              <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,.28);color:#fff;padding:6px 14px;border-radius:8px;font-family:var(--font-mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">📅 Book Slot Now →</div>
+            </div>
+            <svg style="width:16px;height:16px;color:rgba(255,255,255,.85);flex-shrink:0;margin-top:2px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>`;
+        }
       }
-      return banner;
+      return showRecovery?banner:'';
     })():''}
 
     ${userRole==='admin'?`
@@ -4107,9 +4175,9 @@ function renderDashboard(){
       <div class="card">
         <div class="card-body">
           <div class="trn-progress-wrap p-${trnColor}">
-            <div class="trn-prog-label">Overall Progress</div>
-            <div class="trn-prog-pct-row">
-              <div class="trn-prog-pct" style="color:${trnBarColor}">${trnPct}%</div>
+            <div class="trn-prog-label">Progress Reminder</div>
+            <div class="trn-prog-pct-row" style="flex-wrap:wrap;gap:12px;align-items:center">
+              ${heroChip?`<div style="flex:1;min-width:220px">${heroChip}</div>`:`<div style="flex:1"></div>`}
               <div class="trn-prog-status-pill" style="background:${trnColor==='green'?'#dcfce7':trnColor==='yellow'?'#fefce8':'#fee2e2'};color:${trnColor==='green'?'#166534':trnColor==='yellow'?'#854d0e':'#991b1b'}">${trnPct===100?'✓ Completed':trnPct===75?'⏳ In Progress':trnPct===25?'📚 Need Retake':'⬜ Not Started'}</div>
             </div>
             <div class="trn-prog-bar-track">
@@ -7363,8 +7431,9 @@ function renderBooking(){
         <div style="width:26px;height:26px;background:linear-gradient(135deg,#0C447C,#2563eb);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🗺️</div>
         <div style="font-family:var(--font-head);font-size:13px;font-weight:900;color:#0C447C;text-transform:uppercase;letter-spacing:.04em">Your OSCE Day — What to Expect</div>
       </div>
-      <div style="font-size:11px;color:#64748b;font-family:var(--font-mono);font-weight:700;margin-bottom:10px;line-height:1.5">Tap the image to view full screen. Total OSCE duration: 90 min · Arrive by 2:30 PM at Main Office, UKI.</div>
-      <img src="${OSCE_FLOW_IMG}" alt="OSCE process flow: book slot, arrive, Station 1 CVC Insertion, Station 2 CVC Maintenance, Station 3 MCQ and Feedback, scoring, pass or fail" onclick="openOsceGuide()" style="width:100%;height:auto;border-radius:10px;border:1px solid #e2e8f0;cursor:zoom-in;display:block">
+      <div style="font-size:14px;color:#0C447C;font-family:var(--font-mono);font-weight:800;margin-bottom:4px;line-height:1.5">Total OSCE duration: 90 min · Arrive by 2:30 PM at Main Office, UKI.</div>
+      <div style="font-size:10px;color:#94a3b8;font-family:var(--font-mono);font-weight:700;margin-bottom:10px">Tap the image to view full screen.</div>
+      <img src="${OSCE_FLOW_IMG}" alt="OSCE process flow: book slot, arrive, Station 1 CVC Insertion, Station 2 CVC Maintenance, Station 3 MCQ and Feedback, scoring, pass or fail" onclick="openOsceGuide()" style="width:100%;max-width:420px;height:auto;border-radius:10px;border:1px solid #e2e8f0;cursor:zoom-in;display:block;margin:0 auto">
     </div>`;
   }
 
@@ -8712,11 +8781,11 @@ function patchProgressCard(pg){
   var glowColor=isGreen?'rgba(39,174,96,.5)':isYellow?'rgba(241,196,15,.5)':'rgba(192,57,43,.5)';
   wrap.style.cssText='background:'+WRAP_BG+';border-radius:0 0 14px 14px;padding:18px;border:1px solid rgba(255,255,255,.07);border-top:2px solid '+glowColor+';position:relative;overflow:hidden';
   var lbl=wrap.querySelector('.trn-prog-label');
-  if(lbl)lbl.style.cssText='font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.14em;font-weight:700;margin-bottom:6px;font-family:\'Roboto Mono\',monospace';
+  if(lbl)lbl.style.cssText='font-size:17px;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.1em;font-weight:900;margin-bottom:8px;font-family:\'Roboto Mono\',monospace';
   var pctRow=wrap.querySelector('.trn-prog-pct-row');
   if(pctRow){
     var pctEl=pctRow.querySelector('.trn-prog-pct'),pillEl=pctRow.querySelector('.trn-prog-status-pill');
-    if(pctEl){var oc=pctEl.style.color||'#27ae60';pctEl.style.cssText='font-size:48px;font-weight:900;line-height:1;color:'+oc+';font-family:\'Montserrat\',sans-serif;text-shadow:0 0 20px '+oc+'60';}
+    if(pctEl){var oc=pctEl.style.color||'#27ae60';pctEl.style.cssText='font-size:54px;font-weight:900;line-height:1;color:'+oc+';font-family:\'Montserrat\',sans-serif;text-shadow:0 0 20px '+oc+'60';}
     if(pillEl){var pillColor=isGreen?'#27ae60':isYellow?'#f1c40f':'#c0392b';pillEl.style.cssText='display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:20px;background:rgba(0,0,0,.3);border:1.5px solid '+pillColor+';font-family:\'Roboto Mono\',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+pillColor;}
   }
   var barTrack=wrap.querySelector('.trn-prog-bar-track');
