@@ -92,8 +92,10 @@ a{text-decoration:none}
 .bn svg{width:20px;height:20px;margin-bottom:1px;transition:.2s}
 
 /* ── PAGE HEADER ── */
-#ph{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;background:#c0392b;color:#fff;transition:background .25s}
-.ph-left h1{font-size:24px;font-weight:900;text-transform:uppercase;color:#fff;font-family:var(--font-head)}
+#ph{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;background:#c0392b;color:#fff;transition:background .25s;background-size:220% 220%;animation:phShift 5s ease-in-out infinite}
+@keyframes phShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.ph-left h1{font-size:24px;font-weight:900;text-transform:uppercase;color:#fff;font-family:var(--font-head);text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.ph-divider{height:3px;width:100%;max-width:300px;margin:7px 0 8px;border-radius:2px;background:linear-gradient(90deg,#f4d03f,rgba(244,208,63,.05));box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .ph-left p{font-size:11px;color:rgba(255,255,255,.75);text-transform:uppercase;letter-spacing:.1em;margin-top:3px;font-family:var(--font-mono);font-weight:700}
 .ph-badge{display:flex;align-items:center;gap:6px;background:var(--red);padding:6px 12px;border-radius:10px}
 .ph-badge span{color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-mono)}
@@ -534,7 +536,9 @@ td.role-cell{font-size:14px;color:#111;font-weight:700}
 
 /* Inner card background to cover the border */
 .login-card-inner{
-  background:rgba(14,14,20,.96);
+  background:linear-gradient(135deg,#0a0a0f,#2d0a08,#0a0a0f);
+  background-size:240% 240%;
+  animation:phShift 7s ease-in-out infinite;
   border-radius:27px;
   overflow:hidden;
   position:relative;
@@ -569,6 +573,17 @@ td.role-cell{font-size:14px;color:#111;font-weight:700}
 .role-sub{font-size:11px;color:rgba(255,255,255,.4);font-family:var(--font-mono);font-weight:600;margin-top:2px}
 .chev{margin-left:auto;width:14px;height:14px;color:rgba(255,255,255,.2)}
 .role-btn:hover .chev{color:rgba(192,57,43,.8)}
+
+/* Coordinator = red two-tone moving; Medical Staff = green two-tone moving */
+.role-admin{background-color:transparent;background-image:linear-gradient(120deg,#8e1f14,#e74c3c,#8e1f14);background-size:220% 220%;animation:phShift 5s ease-in-out infinite;border-color:rgba(231,76,60,.4)}
+.role-staff{background-color:transparent;background-image:linear-gradient(120deg,#157a43,#2ecc71,#157a43);background-size:220% 220%;animation:phShift 5s ease-in-out infinite;border-color:rgba(46,204,113,.4)}
+.role-admin:hover{background-color:transparent;background-image:linear-gradient(120deg,#8e1f14,#e74c3c,#8e1f14);background-size:220% 220%;border-color:rgba(231,76,60,.75);box-shadow:0 8px 24px rgba(231,76,60,.3);transform:translateY(-1px)}
+.role-staff:hover{background-color:transparent;background-image:linear-gradient(120deg,#157a43,#2ecc71,#157a43);background-size:220% 220%;border-color:rgba(46,204,113,.75);box-shadow:0 8px 24px rgba(46,204,113,.3);transform:translateY(-1px)}
+.role-admin .role-ico,.role-staff .role-ico{background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.18)}
+.role-admin .role-ico svg,.role-staff .role-ico svg{color:#fff}
+.role-admin:hover .role-ico,.role-staff:hover .role-ico{background:rgba(0,0,0,.35)}
+.role-admin .role-sub,.role-staff .role-sub{color:rgba(255,255,255,.8)}
+.role-admin .chev,.role-staff .chev,.role-admin:hover .chev,.role-staff:hover .chev{color:rgba(255,255,255,.7)}
 
 .role-back{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-radius:11px;margin-bottom:14px}
 .role-back.red{background:rgba(192,57,43,.15);color:#e74c3c;border:1px solid rgba(192,57,43,.2)}
@@ -996,6 +1011,7 @@ select.pw-inp option{background:#1a1a2e;color:#fff}/* ── IMAGE ZOOM MODAL �
     <div id="ph">
       <div class="ph-left">
         <h1 id="ph-title">Dashboard</h1>
+        <div class="ph-divider"></div>
         <p>CLABSI Guard Pro · Hospital Tengku Permaisuri Norashikin</p>
         <p style="font-size:9px;color:rgba(255,255,255,.35);font-family:var(--font-mono);font-weight:700;margin-top:1px;letter-spacing:.05em">© Dr. Aneesa Tharek · IPC Unit HTPN</p>
       </div>
@@ -1700,12 +1716,12 @@ function renderLogin(){
   if(!selRole){
     b.innerHTML=`
       <div class="role-lbl">Select your role</div>
-      <button class="role-btn" onclick="setRole('admin')">
+      <button class="role-btn role-admin" onclick="setRole('admin')">
         <div class="role-ico"><svg style="width:19px;height:19px"><use href="#ic-lock"/></svg></div>
         <div><div class="role-name">Coordinator</div><div class="role-sub">Full access</div></div>
         <svg class="chev"><use href="#ic-chev"/></svg>
       </button>
-      <button class="role-btn" onclick="setRole('staff')">
+      <button class="role-btn role-staff" onclick="setRole('staff')">
         <div class="role-ico"><svg style="width:19px;height:19px"><use href="#ic-nurse"/></svg></div>
         <div><div class="role-name">Medical Staff</div><div class="role-sub">Limited access</div></div>
         <svg class="chev"><use href="#ic-chev"/></svg>
@@ -2393,9 +2409,9 @@ function go(tab,keepTrainingState=false){
   activeTab=tab;
   document.getElementById('ph-title').textContent=tab==='contact'?'Contact & Info':tab.charAt(0).toUpperCase()+tab.slice(1);
   // Update header background colour to match active tab
-  const tabColors={dashboard:'#c0392b',training:'#2980b9',booking:'#27ae60',references:'#d4a017',contact:'#7c3aed'};
+  const tabColors={dashboard:'linear-gradient(120deg,#8e1f14,#e74c3c,#8e1f14)',training:'linear-gradient(120deg,#17527d,#3498db,#17527d)',booking:'linear-gradient(120deg,#157a43,#2ecc71,#157a43)',references:'linear-gradient(120deg,#a67c00,#f4d03f,#a67c00)',contact:'linear-gradient(120deg,#5b21b6,#a78bfa,#5b21b6)'};
   const ph=document.getElementById('ph');
-  if(ph) ph.style.background=tabColors[tab]||'#111';
+  if(ph){ph.style.backgroundImage=tabColors[tab]||'linear-gradient(120deg,#111,#333,#111)';}
   const activeTabs=typeof ADMIN_TABS!=='undefined'&&userRole==='admin'?ADMIN_TABS:TABS;
   activeTabs.forEach(([t])=>{
     ['sb-','bn-','pg-'].forEach(p=>{
