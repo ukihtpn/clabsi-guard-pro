@@ -3849,11 +3849,17 @@ function buildStaffReminderMsg(s){
       String(sl.bookedRegisterId||'').toUpperCase()===rid;
   });
   const oscePassed=s.practical==='Passed';
+  const hasCert=!!(s.certLink&&String(s.certLink).trim());
 
   let body;
-  if(oscePassed && t>=90){
-    // All done
-    body='\n\nCongratulations! You have completed both your Theory and OSCE practical assessment. Thank you for your participation.';
+  if(oscePassed && t>=90 && hasCert){
+    // Fully done — theory, OSCE, feedback & certificate all complete
+    body='\n\nCongratulations! You have completed your Theory, OSCE practical, and feedback. Your certificate has been generated. Thank you for your participation.';
+  }else if(oscePassed && t>=90 && !hasCert){
+    // Passed OSCE but feedback not yet submitted → no certificate yet
+    body='\n\nCongratulations! You have passed both your Theory and OSCE practical assessment.'
+        +'\n\nOne step left: please log in and complete the short Feedback form to generate and receive your certificate.'
+        +'\n\nVisit: '+APP_URL;
   }else if(booked){
     // Already booked an OSCE slot — remind of the date
     body='\n\nReminder: Your OSCE practical slot is booked.'
@@ -3876,7 +3882,9 @@ function buildStaffReminderMsg(s){
   }
 
   return 'CLABSI Guard Pro - HTPN\n\nDear '+(s.name||'Staff')+','
+        + (rid?('\n\nYour Register ID (login): '+rid):'')
         + body
+        + '\n\nIf you forgot your password, tap "Forgot Password?" on the login page and reset it using your Register ID and IC number. If you still have trouble, please contact UKI HTPN.'
         + '\n\nFor enquiries, please contact UKI HTPN.\n\nThank you.\n- UKI HTPN IPC Unit';
 }
 // wa.me needs the number in international format with no leading 0.
@@ -4069,7 +4077,7 @@ function renderDashboard(){
   // ── Theory completion date & earliest booking date ──
   const _ridDashOrig=loggedInStaff?String(loggedInStaff.registerId||'').trim().toUpperCase():'';
   const _fsQRDash=fsQRCache[_ridDash]||fsQRCache[_ridDashOrig]||{};
-  const _theoryCompletedAt=_ridDash?(toMs(_qrDash[_ridDash+'_theoryCompletedAt'])||toMs(_qrDash[_ridDashOrig+'_theoryCompletedAt'])||toMs(loggedInStaff._theoryCompletedAt)||toMs(_fsQRDash.theoryCompletedAt)||toMs(_fsQRDash.updatedAt)||0):0;
+  const _theoryCompletedAt=(_ridDash && (Number(loggedInStaff.theory)||0)>0)?(toMs(_qrDash[_ridDash+'_theoryCompletedAt'])||toMs(_qrDash[_ridDashOrig+'_theoryCompletedAt'])||toMs(loggedInStaff._theoryCompletedAt)||toMs(_fsQRDash.theoryCompletedAt)||toMs(_fsQRDash.updatedAt)||0):0;
   const _theoryCompletedStr=_theoryCompletedAt?new Date(_theoryCompletedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
   const _earliestBookDate=_theoryCompletedAt?new Date(_theoryCompletedAt+(7*24*60*60*1000)):null;
   const _earliestBookStr=_earliestBookDate?_earliestBookDate.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
@@ -4647,7 +4655,8 @@ function renderDashboard(){
               const _fsTheoryDate=toMs(_qrCacheEntry.theoryCompletedAt)||toMs(_qrCacheEntry.updatedAt)||0;
               const _localTheoryDate=_rid?(toMs(_qr[_rid+'_theoryCompletedAt'])||toMs(_qr[_ridOrig+'_theoryCompletedAt'])||toMs(s._theoryCompletedAt)||0):0;
               const _tca=_fsTheoryDate||_localTheoryDate||0;
-              const _tcaStr=_tca?new Date(_tca).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
+              // If theory is 0/blank, never show a date (coordinator cleared it)
+              const _tcaStr=((Number(s.theory)||0)>0 && _tca)?new Date(_tca).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
               const _lastLogin=_rid?(parseInt(localStorage.getItem('cgp8:lastlogin_'+_rid)||'0')||toMs(s.lastLoginAt)||0):0;
               const _updAt=toMs(s.updatedAt);
               const _loginTxt=_lastLogin?new Date(_lastLogin).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):_updAt?('~'+new Date(_updAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})):'Never';
@@ -5551,6 +5560,37 @@ async function saveStaff(){
         Object.keys(qrData).forEach(function(k){localQR[k]=qrData[k];});
         localStorage.setItem('cgp8:quizresults',JSON.stringify(localQR));
       }
+    }
+
+    // Coordinator set theory to 0 → CLEAR all theory marks & dates for this staff
+    if(theory===0){
+      // Build the set of register-id forms to purge (raw, upper, normalized)
+      var _rids=[registerId, registerId.toUpperCase(), (typeof normalizeRid==='function'?normalizeRid(registerId):registerId)];
+      var _ridSet={}; _rids.forEach(function(r){ if(r) _ridSet[r]=1; });
+      // Firestore: overwrite quizResults doc with a clean one (removes all _m / _completedAt / _theoryCompletedAt keys)
+      if(fb){
+        try{
+          // Delete the whole quizResults doc for this staff, then write a minimal fresh marker
+          await fb.deleteDoc(fb.doc(fb.db,'quizResults',String(registerId))).catch(function(){});
+          Object.keys(_ridSet).forEach(function(r){
+            if(r!==String(registerId)) fb.deleteDoc(fb.doc(fb.db,'quizResults',String(r))).catch(function(){});
+          });
+        }catch(e){}
+        // Also clear the staff-level cached date
+        try{ await fb.setDoc(fb.doc(fb.db,'staff',String(id)),{_theoryCompletedAt:0,theory:0,updatedAt:fb.serverTimestamp()},{merge:true}); }catch(e){}
+      }
+      // localStorage: strip every key belonging to this staff's theory
+      var _lq=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
+      Object.keys(_lq).forEach(function(k){
+        Object.keys(_ridSet).forEach(function(r){
+          if(k.indexOf(r+'_')===0) delete _lq[k];
+        });
+      });
+      localStorage.setItem('cgp8:quizresults',JSON.stringify(_lq));
+      // Clear from the in-memory Firestore cache so dashboard updates immediately
+      Object.keys(_ridSet).forEach(function(r){ if(fsQRCache[r]) delete fsQRCache[r]; });
+      // Make sure the staff record itself carries no stale date
+      data._theoryCompletedAt=0;
     }
 
     // Update local state
