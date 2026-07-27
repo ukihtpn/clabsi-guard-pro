@@ -4037,6 +4037,26 @@ function staffSearchInput(val){
     },0);
   },250);
 }
+// ── ADD-ON (Uki): status lifecycle staff → warna row + urutan sort ──
+function _cgpLC(s){
+  var out={bg:'#fee2e2',band:'#dc2626',rank:3};
+  try{
+    var qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
+    var rid=normalizeRid(s.registerId||'');
+    var ridO=String(s.registerId||'').trim().toUpperCase();
+    var mods=(typeof THEORY_MODULES!=='undefined'&&THEORY_MODULES.length)?THEORY_MODULES:[{num:1},{num:2},{num:3},{num:4}];
+    var passedMods=mods.filter(function(m){return (qr[rid+'_m'+m.num]||qr[ridO+'_m'+m.num]||0)>=90;}).length;
+    var theoryFromQR=mods.length?Math.round((passedMods/mods.length)*100):0;
+    var theory=Math.max(Number(s.theory)||0,theoryFromQR);
+    var theoryDone=theory>=90||passedMods>=mods.length;
+    var passed=s.practical==='Passed';
+    if(passed&&theoryDone)      out={bg:'#dcfce7',band:'#16a34a',rank:0}; // hijau: competent
+    else if(theoryDone)         out={bg:'#dbeafe',band:'#2563eb',rank:1}; // biru: theory siap
+    else if(theory>0||passedMods>0) out={bg:'#ffedd5',band:'#f97316',rank:2}; // orange: separa
+    else out={bg:'#fee2e2',band:'#dc2626',rank:3};                        // merah: belum start
+  }catch(e){}
+  return out;
+}
 function renderDashboard(){
   const sl=staff();
   const total=sl.length,comp=sl.filter(s=>s.theory>=90&&s.practical==='Passed').length;
@@ -4062,6 +4082,12 @@ function renderDashboard(){
     const q=srch.toLowerCase().trim();
     filt=sl.filter(s=>!q||(s.name||'').toLowerCase().includes(q)||(s.registerId||'').toLowerCase().includes(q)||(s.ic||'').toLowerCase().includes(q)||(s.phone||'').toLowerCase().includes(q));
     if(roleFilter!=='All') filt=filt.filter(s=>s.role===roleFilter);
+    // ADD-ON (Uki): susun — competent → theory done → separa → belum start, pastu nama A-Z
+    filt=filt.slice().sort(function(a,b){
+      var ra=_cgpLC(a).rank, rb=_cgpLC(b).rank;
+      if(ra!==rb) return ra-rb;
+      return String(a.name||'').localeCompare(String(b.name||''));
+    });
   }
 
   const byRole=['MO','Staff Nurse','HO'].map(role=>{
@@ -4626,6 +4652,30 @@ function renderDashboard(){
 
     <!-- STAFF TABLE -->
     <div>
+      ${userRole==='admin'?(function(){
+        try{
+          var qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
+          var cats=[{key:'Staff Nurse',lbl:'SN',color:'#e11d48'},{key:'MO',lbl:'MO',color:'#2563eb'},{key:'HO',lbl:'HO',color:'#16a34a'}];
+          var mods=(typeof THEORY_MODULES!=='undefined'&&THEORY_MODULES.length)?THEORY_MODULES:[{num:1},{num:2},{num:3},{num:4}];
+          var pool=(roleFilter!=='All')?sl.filter(function(s){return s.role===roleFilter;}):sl;
+          function passed(s,num){var rid=normalizeRid(s.registerId||''),ridO=String(s.registerId||'').trim().toUpperCase();return (qr[rid+'_m'+num]||qr[ridO+'_m'+num]||0)>=90;}
+          var denom=pool.length||1;
+          var bars=mods.map(function(m){
+            var total=pool.filter(function(s){return passed(s,m.num);}).length;
+            var pct=Math.round((total/denom)*100);
+            var segs=cats.map(function(c){var v=pool.filter(function(s){return s.role===c.key&&passed(s,m.num);}).length;if(!v)return '';var w=(v/denom)*100;return '<div title="'+c.lbl+': '+v+'" style="width:'+w+'%;background:'+c.color+';height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;font-family:var(--font-mono)">'+(w>7?v:'')+'</div>';}).join('');
+            return '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:11px;font-weight:800;color:#0f172a;font-family:var(--font-mono)">Theory '+m.num+'</span><span style="font-size:11px;font-weight:800;color:#0f172a;font-family:var(--font-mono)">'+total+'/'+denom+' ('+pct+'%)</span></div><div style="display:flex;height:22px;border-radius:6px;overflow:hidden;background:#f1f5f9;border:1px solid #e2e8f0">'+segs+'</div></div>';
+          }).join('');
+          // Legend BOLEH KLIK — tapis ikut kategori (guna _roleFilter sama macam butang table)
+          var legItems=[{key:'All',lbl:'All',color:'#94a3b8'}].concat(cats);
+          var legend=legItems.map(function(c){
+            var on=(roleFilter||'All')===c.key;
+            return '<span onclick="window._roleFilter=\''+c.key+'\';_rd()" title="Tapis: '+c.lbl+'" style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;font-family:var(--font-mono);cursor:pointer;padding:3px 8px;border-radius:7px;transition:.15s;background:'+(on?'rgba(255,255,255,.15)':'transparent')+';border:1.5px solid '+(on?c.color:'rgba(255,255,255,.15)')+';color:'+(on?'#fff':'#cbd5e1')+'"><span style="width:11px;height:11px;border-radius:3px;background:'+c.color+'"></span>'+c.lbl+'</span>';
+          }).join('');
+          return '<div style="margin-bottom:16px;background:#fff;border-radius:16px;border:1.5px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden"><div style="background:#0f172a;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">&#128202;</span><span style="color:#fff;font-weight:900;font-size:13px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em">Theory Completion Summary'+(roleFilter!=='All'?' &mdash; '+roleFilter:'')+'</span></div><div style="display:flex;gap:12px;flex-wrap:wrap">'+legend+'</div></div><div style="padding:16px">'+bars+'</div></div>'
+            +'<div style="margin-bottom:14px;display:flex;gap:14px;flex-wrap:wrap;padding:10px 14px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0"><span style="font-size:10px;font-weight:800;color:#334155;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em">Warna Row:</span><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#166534"><span style="width:12px;height:12px;border-radius:3px;background:#16a34a"></span>Competent</span><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#1e40af"><span style="width:12px;height:12px;border-radius:3px;background:#2563eb"></span>Theory done</span><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#c2410c"><span style="width:12px;height:12px;border-radius:3px;background:#f97316"></span>In progress</span><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#991b1b"><span style="width:12px;height:12px;border-radius:3px;background:#dc2626"></span>Belum start</span></div>';
+        }catch(e){return '';}
+      })():''}
       <div class="tbl-toolbar">
         <div class="tbl-title-row">
           ${svg('ic-users',16,16,'#f1c40f')}<span>${userRole==='staff'?'My Competency Record':`Competency Records${(window._roleFilter&&window._roleFilter!=='All')?' — '+window._roleFilter:''}`}</span>
@@ -4682,8 +4732,8 @@ function renderDashboard(){
                 :(_mySlot?new Date(_mySlot.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+(_mySlot.time?' · '+_mySlot.time:''):'—');
               const _osceCol=(_osceManual||_mySlot)?'#166534':'#d1d5db';
               return `
-              <tr${!s.registerId&&userRole==='admin'?' style="background:#fffbeb"':''}>
-                <td class="name-cell">${s.name}</td>
+              <tr${userRole==='admin'?(!s.registerId?' style="background:#fffbeb"':' style="background:'+_cgpLC(s).bg+';box-shadow:inset 5px 0 0 0 '+_cgpLC(s).band+'"'):''}>
+                <td class="name-cell">${userRole==='admin'?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;background:'+_cgpLC(s).band+'"></span>':''}${s.name}</td>
                 <td class="role-cell">${s.role}</td>
                 ${userRole==='admin'?`
                 <td><span style="font-family:var(--font-mono);font-size:12px;font-weight:700;background:${s.registerId?'#f0f0f0':'#fee2e2'};color:${s.registerId?'#111':'#991b1b'};padding:3px 8px;border-radius:6px;">${s.registerId||'⚠ No ID'}</span></td>
