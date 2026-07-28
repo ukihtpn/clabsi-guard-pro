@@ -2560,7 +2560,7 @@ function renderResearchInline(container){
       else if(st.consentDecision==='decline'||st.consentGiven===false) declinedCount++;
     });
 
-    var cards='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">'
+    var cards='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px">'
       +[{l:'Agreed to Research',v:agreedCount,c:'#16a34a'},
         {l:'Declined',v:declinedCount,c:'#64748b'},
         {l:'Pre-test Done',v:totalPre,c:'#2563eb'},
@@ -2617,11 +2617,11 @@ function renderResearchInline(container){
         +'</tr>';
     }).join('');
 
-    var table=allRids.length?'<div style="background:#fff;border-radius:10px;overflow:hidden;border:1.5px solid #e2e8f0">'
-      +'<table style="width:100%;border-collapse:collapse">'
+    var table=allRids.length?'<div style="background:#fff;border-radius:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1.5px solid #e2e8f0">'
+      +'<table style="width:100%;min-width:640px;border-collapse:collapse">'
       +'<thead><tr style="background:#1e3a5f">'
       +['Name','Register ID','Role','Consent','Pre-test','SUS Score','Rating','Actions'].map(function(h){
-        return '<th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase">'+h+'</th>';
+        return '<th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;white-space:nowrap">'+h+'</th>';
       }).join('')
       +'</tr></thead><tbody>'+rows+'</tbody></table></div>'
       :'<div style="text-align:center;padding:30px;color:#94a3b8;font-size:12px">No data yet.</div>';
