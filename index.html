@@ -2599,10 +2599,16 @@ function renderResearchInline(container){
       var preCell=hasPre
         ? '<span style="color:'+(p.pct>=70?'#16a34a':'#dc2626')+';font-weight:700">'+(p.score!==undefined?p.score+'/10 ('+p.pct+'%)':'✓ Done')+'</span>'
         : '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;white-space:nowrap">⚠ Not Done</span>';
-      var actions=hasPre
-        ? '<button onclick="_cgpEditPretest(\''+_ridEsc+'\')" title="Edit score" style="padding:4px 9px;margin-right:5px;border-radius:7px;border:1.5px solid #2563eb;background:#eff6ff;color:#2563eb;font-size:10px;font-weight:800;cursor:pointer">✏ Edit</button>'
-          +'<button onclick="_cgpDelPretest(\''+_ridEsc+'\')" title="Delete pre-test" style="padding:4px 9px;border-radius:7px;border:1.5px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:10px;font-weight:800;cursor:pointer">🗑 Delete</button>'
-        : '<span style="color:#cbd5e1;font-size:11px">—</span>';
+      var hasSus=s.susScore!==undefined;
+      var preActions=hasPre
+        ? '<button onclick="_cgpEditPretest(\''+_ridEsc+'\')" title="Edit pre-test score" style="padding:4px 9px;margin-right:5px;border-radius:7px;border:1.5px solid #2563eb;background:#eff6ff;color:#2563eb;font-size:10px;font-weight:800;cursor:pointer">✏ Pre</button>'
+          +'<button onclick="_cgpDelPretest(\''+_ridEsc+'\')" title="Delete pre-test" style="padding:4px 9px;margin-right:5px;border-radius:7px;border:1.5px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:10px;font-weight:800;cursor:pointer">🗑 Pre</button>'
+        : '';
+      var susActions=hasSus
+        ? '<button onclick="_cgpEditSUS(\''+_ridEsc+'\')" title="Edit SUS score" style="padding:4px 9px;margin-right:5px;border-radius:7px;border:1.5px solid #7c3aed;background:#f5f3ff;color:#7c3aed;font-size:10px;font-weight:800;cursor:pointer">✏ SUS</button>'
+          +'<button onclick="_cgpDelSUS(\''+_ridEsc+'\')" title="Delete SUS" style="padding:4px 9px;border-radius:7px;border:1.5px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:10px;font-weight:800;cursor:pointer">🗑 SUS</button>'
+        : '';
+      var actions=(preActions+susActions)||'<span style="color:#cbd5e1;font-size:11px">—</span>';
       return '<tr>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600">'+name+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9"><span style="font-family:Roboto Mono,monospace;font-size:11px;font-weight:700;background:#f1f5f9;color:#334155;padding:2px 8px;border-radius:6px">'+String(rid).toUpperCase()+'</span></td>'
@@ -2722,10 +2728,16 @@ function renderResearch(){
       var rating=sus.appRating?'⭐'.repeat(sus.appRating):'—';
       var suggestion=sus.suggestion?'"'+sus.suggestion.substring(0,60)+(sus.suggestion.length>60?'...':'')+'"':'—';
       var _ridEsc=String(rid).replace(/'/g,"\\'");
-      var actions=hasPre
-        ? '<button onclick="_cgpEditPretest(\''+_ridEsc+'\')" title="Edit pre-test score" style="padding:4px 9px;margin-right:5px;border-radius:7px;border:1.5px solid #2563eb;background:#eff6ff;color:#2563eb;font-size:10px;font-weight:800;cursor:pointer;font-family:Roboto Mono,monospace">✏ Edit</button>'
-          +'<button onclick="_cgpDelPretest(\''+_ridEsc+'\')" title="Delete pre-test record" style="padding:4px 9px;border-radius:7px;border:1.5px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:10px;font-weight:800;cursor:pointer;font-family:Roboto Mono,monospace">🗑 Delete</button>'
-        : '<span style="color:#cbd5e1;font-size:11px">—</span>';
+      var hasSus=sus.susScore!==undefined;
+      var preActions=hasPre
+        ? '<button onclick="_cgpEditPretest(\''+_ridEsc+'\')" title="Edit pre-test score" style="padding:4px 9px;margin-right:5px;border-radius:7px;border:1.5px solid #2563eb;background:#eff6ff;color:#2563eb;font-size:10px;font-weight:800;cursor:pointer;font-family:Roboto Mono,monospace">✏ Pre</button>'
+          +'<button onclick="_cgpDelPretest(\''+_ridEsc+'\')" title="Delete pre-test record" style="padding:4px 9px;margin-right:5px;border-radius:7px;border:1.5px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:10px;font-weight:800;cursor:pointer;font-family:Roboto Mono,monospace">🗑 Pre</button>'
+        : '';
+      var susActions=hasSus
+        ? '<button onclick="_cgpEditSUS(\''+_ridEsc+'\')" title="Edit SUS score" style="padding:4px 9px;margin-right:5px;border-radius:7px;border:1.5px solid #7c3aed;background:#f5f3ff;color:#7c3aed;font-size:10px;font-weight:800;cursor:pointer;font-family:Roboto Mono,monospace">✏ SUS</button>'
+          +'<button onclick="_cgpDelSUS(\''+_ridEsc+'\')" title="Delete SUS" style="padding:4px 9px;border-radius:7px;border:1.5px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:10px;font-weight:800;cursor:pointer;font-family:Roboto Mono,monospace">🗑 SUS</button>'
+        : '';
+      var actions=(preActions+susActions)||'<span style="color:#cbd5e1;font-size:11px">—</span>';
       return '<tr>'
         +'<td style="padding:9px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600">'+name+'</td>'
         +'<td style="padding:9px 10px;border-bottom:1px solid #f1f5f9;font-size:11px;color:#64748b">'+role+'</td>'
@@ -2804,6 +2816,36 @@ function _cgpEditPretest(rid){
     fb.setDoc(fb.doc(fb.db,'research_pretest',normR),updated,{merge:true}).then(function(){
       try{ if(typeof preKey==='function'){ localStorage.setItem(preKey(rid),JSON.stringify(updated)); } }catch(e){}
       toast('Pre-test '+normR+' updated: '+sc+'/'+maxQ+' ('+pct+'%)');
+      _cgpRefreshResearch();
+    }).catch(function(e){ toast('Gagal simpan: '+e.message,'err'); });
+  }).catch(function(e){ toast('Gagal baca: '+e.message,'err'); });
+}
+// ── ADD-ON (fix): EDIT / BUANG rekod SUS ─────────────────────
+// SUS disimpan di Firestore collection 'research_sus', doc id = normalized rid.
+// (Sebelum ni tiada langsung fungsi edit/delete untuk SUS — itu sebab
+// coordinator tak nampak butang kat column SUS Score/Rating.)
+function _cgpDelSUS(rid){
+  if(!fb){ toast('Firebase not connected.','err'); return; }
+  var normR=(typeof norRid==='function')?norRid(rid):String(rid).replace(/[-\s]/g,'').toUpperCase();
+  if(!confirm('Delete the SUS record for '+normR+'? The score & answers will be permanently removed. The staff can retake it.')) return;
+  fb.deleteDoc(fb.doc(fb.db,'research_sus',normR)).then(function(){
+    toast('SUS '+normR+' deleted.','err');
+    _cgpRefreshResearch();
+  }).catch(function(e){ toast('Gagal buang: '+e.message,'err'); });
+}
+function _cgpEditSUS(rid){
+  if(!fb){ toast('Firebase not connected.','err'); return; }
+  var normR=(typeof norRid==='function')?norRid(rid):String(rid).replace(/[-\s]/g,'').toUpperCase();
+  fb.getDoc(fb.doc(fb.db,'research_sus',normR)).then(function(snap){
+    var cur=snap.exists()?snap.data():{};
+    var curScore=(cur.susScore!==undefined)?cur.susScore:'';
+    var input=prompt('Edit SUS score for '+normR+'\n(Enter score out of 100):', curScore);
+    if(input===null) return;
+    var sc=parseInt(input,10);
+    if(isNaN(sc)||sc<0||sc>100){ toast('Invalid score (0-100).','err'); return; }
+    var updated=Object.assign({},cur,{susScore:sc,_editedByCoordinator:true,_editedAt:Date.now()});
+    fb.setDoc(fb.doc(fb.db,'research_sus',normR),updated,{merge:true}).then(function(){
+      toast('SUS '+normR+' updated: '+sc+'/100');
       _cgpRefreshResearch();
     }).catch(function(e){ toast('Gagal simpan: '+e.message,'err'); });
   }).catch(function(e){ toast('Gagal baca: '+e.message,'err'); });
@@ -5821,6 +5863,14 @@ async function delStaff(id,_opts){
   const s=localStaff.find(s=>(s._fsId||s.id)===id);
   const registerId=s?s.registerId:'';
   const rid=registerId.trim().toUpperCase();
+  // ADD-ON (fix): quizResults/proQuizResults use normalizeRid() as their doc key
+  // (strips leading zeros, fixes H0/M0/S0 prefixes) — differs from the plain
+  // uppercase-trim `rid` above (e.g. "SN04" -> "SN4"). research_pretest /
+  // research_posttest / research_sus use a SEPARATE, simpler norRid() (only
+  // strips spaces/dashes + uppercase, no leading-zero fix) — must use the
+  // matching function for each collection or the delete silently misses the doc.
+  const ridNorm=normalizeRid(registerId);
+  const ridResearch=(typeof norRid==='function')?norRid(registerId):rid;
 
   // ── 1. Delete staff Firestore record ──
   if(fb) await fsDel('staff',String(id)).catch(function(){});
@@ -5828,12 +5878,28 @@ async function delStaff(id,_opts){
   // ── 2. Delete all related Firestore docs immediately ──
   if(fb&&registerId){
     const delPromises=[];
-    // quizResults (try both original case and uppercase)
+    // quizResults (try original case, uppercase, AND normalized rid)
     delPromises.push(fsDel('quizResults',registerId).catch(function(){}));
     if(rid!==registerId) delPromises.push(fsDel('quizResults',rid).catch(function(){}));
+    if(ridNorm&&ridNorm!==registerId&&ridNorm!==rid) delPromises.push(fsDel('quizResults',ridNorm).catch(function(){}));
     // proQuizResults
     delPromises.push(fsDel('proQuizResults',registerId).catch(function(){}));
     if(rid!==registerId) delPromises.push(fsDel('proQuizResults',rid).catch(function(){}));
+    if(ridNorm&&ridNorm!==registerId&&ridNorm!==rid) delPromises.push(fsDel('proQuizResults',ridNorm).catch(function(){}));
+    // ADD-ON (fix): research_pretest / research_posttest / research_sus — doc id = norRid(registerId).
+    // These were never cleaned up before, so a deleted staff/tester's research
+    // answers stayed forever and could show up under a new staff with the same ID.
+    if(ridResearch){
+      delPromises.push(fsDel('research_pretest',ridResearch).catch(function(){}));
+      delPromises.push(fsDel('research_posttest',ridResearch).catch(function(){}));
+      delPromises.push(fsDel('research_sus',ridResearch).catch(function(){}));
+    }
+    // Also cover the (rarer) case a research doc was saved under normalizeRid() form
+    if(ridNorm&&ridNorm!==ridResearch){
+      delPromises.push(fsDel('research_pretest',ridNorm).catch(function(){}));
+      delPromises.push(fsDel('research_posttest',ridNorm).catch(function(){}));
+      delPromises.push(fsDel('research_sus',ridNorm).catch(function(){}));
+    }
     // Feedback — query then delete each doc
     delPromises.push(
       fb.getDocs(fb.collection(fb.db,'feedback')).then(function(snap){
@@ -5960,11 +6026,12 @@ async function cleanOrphanMarks(){
   if(!confirm('Remove quiz & theory marks that belong to staff who no longer exist? This cannot be undone.'))return;
 
   // Build the set of registerIds that still have a live staff record.
-  const alive=new Set(
-    staff()
-      .map(function(s){return normalizeRid(s.registerId||'');})
-      .filter(Boolean)
-  );
+  // Two forms needed: normalizeRid() form (used by quizResults/proQuizResults,
+  // fixes M0/H0/S0 zero-vs-letter-O confusion + leading zeros) and norRid() form
+  // (used by research_pretest/posttest/sus — only strips spaces/dashes+uppercase).
+  const aliveList=staff().map(function(s){return s.registerId||'';}).filter(Boolean);
+  const alive=new Set(aliveList.map(function(r){return normalizeRid(r);}).filter(Boolean));
+  const aliveResearch=new Set(aliveList.map(function(r){return (typeof norRid==='function')?norRid(r):r;}).filter(Boolean));
 
   let removed=0;
 
@@ -6004,6 +6071,27 @@ async function cleanOrphanMarks(){
       removed+=dels.length;
       await Promise.all(dels);
     }catch(e){console.warn('cleanOrphanMarks firestore sweep failed',e);}
+
+    // ADD-ON (fix): also sweep orphaned research_pretest / research_posttest / research_sus —
+    // records left behind by deleted staff/testers (e.g. old SN4 tester) that the
+    // old delStaff() never cleaned up.
+    try{
+      const rsnaps=await Promise.all([
+        fb.getDocs(fb.collection(fb.db,'research_pretest')),
+        fb.getDocs(fb.collection(fb.db,'research_posttest')),
+        fb.getDocs(fb.collection(fb.db,'research_sus'))
+      ]);
+      const rdels=[];
+      const rcols=['research_pretest','research_posttest','research_sus'];
+      rsnaps.forEach(function(snap,i){
+        snap.docs.forEach(function(d){
+          const owner=(typeof norRid==='function')?norRid(String(d.data().registerId||d.id||'')):String(d.data().registerId||d.id||'').trim().toUpperCase();
+          if(owner&&!aliveResearch.has(owner)) rdels.push(fsDel(rcols[i],d.id).catch(function(){}));
+        });
+      });
+      removed+=rdels.length;
+      await Promise.all(rdels);
+    }catch(e){console.warn('cleanOrphanMarks research sweep failed',e);}
   }
 
   toast(removed?('Cleaned '+removed+' orphaned mark record(s).'):'No orphaned marks found.', removed?'err':'');
