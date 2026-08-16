@@ -28,14 +28,15 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function(payload){
   const d = payload.data || {};
   const title = d.title || (payload.notification && payload.notification.title) || 'CLABSI Guard Pro';
+  const iconUrl = d.icon || 'https://clabsi-guard-pro.vercel.app/icon-192.png';
   const opts = {
     body: d.body || (payload.notification && payload.notification.body) || '',
-    icon: d.icon || '/icon-192.png',
-    badge: '/badge-72.png',
+    icon: iconUrl,
+    badge: iconUrl,
     tag: d.tag || 'clabsi-reminder',   // tag sama = ganti notif lama, tak bertimbun
     renotify: true,
     requireInteraction: false,
-    data: { url: d.url || '/' }
+    data: { url: d.url || 'https://clabsi-guard-pro.vercel.app/' }
   };
   return self.registration.showNotification(title, opts);
 });
