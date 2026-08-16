@@ -1587,6 +1587,19 @@ async function registerPush(owner){
     // 2. Daftar service worker di root
     const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
 
+    // 2b. TUNGGU service worker betul-betul AKTIF sebelum subscribe.
+    // Tanpa ni, getToken gagal: "no active Service Worker".
+    await navigator.serviceWorker.ready;
+    // extra: kalau baru install, tunggu ia activate
+    if(swReg.installing || swReg.waiting){
+      await new Promise(function(res){
+        const sw = swReg.installing || swReg.waiting;
+        if(!sw){ res(); return; }
+        sw.addEventListener('statechange', function(){ if(sw.state==='activated') res(); });
+        setTimeout(res, 4000); // jangan tunggu selamanya
+      });
+    }
+
     // 3. Dapatkan FCM token
     const token = await fb.getToken(window.__MSG, {
       vapidKey: window.__VAPID_KEY,
