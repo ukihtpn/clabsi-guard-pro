@@ -50,8 +50,14 @@
     }
   }catch(e){ console.warn('FCM init skipped:', e && e.message); }
 
+  // URL GAS Web App utk notif real-time booking ke coordinator.
+  // ISI selepas Deploy > New deployment > Web app (di projek GAS push).
+  // Contoh: 'https://script.google.com/macros/s/AKfy....../exec'
+  window.__PUSH_GAS_URL = 'GANTI_DENGAN_URL_WEB_APP_GAS_PUSH';
+
   window.__FB_READY = true;
   window.dispatchEvent(new Event('fb-ready'));
+
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -8594,6 +8600,19 @@ async function confirmBook(){
   cm('mod-book');
   toast('Booking confirmed! 📅');
   try{gasBookingEmail(updated,loggedInStaff||{name:name,phone:phone,role:role});}catch(e){}
+  // ── Notif REAL-TIME ke coordinator (push) ──
+  // Panggil GAS push web app supaya coordinator dpt notif serta-merta.
+  try{
+    if(window.__PUSH_GAS_URL){
+      var _q = '?action=newBooking'
+        + '&staff=' + encodeURIComponent(name||'Staff')
+        + '&date='  + encodeURIComponent(slot.date||'')
+        + '&time='  + encodeURIComponent(slot.time||'');
+      // guna Image beacon supaya tiada isu CORS (fire-and-forget)
+      var _img = new Image();
+      _img.src = window.__PUSH_GAS_URL + _q + '&_t=' + Date.now();
+    }
+  }catch(e){}
   // Prevent duplicate emails: the direct call above (fire-and-forget via hidden
   // iframe) already asks the Apps Script to send the booking email right away.
   // Without this, `emailPending:true` stays set, and the Apps Script's 5-minute
