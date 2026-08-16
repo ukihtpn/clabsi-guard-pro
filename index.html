@@ -1601,25 +1601,43 @@ async function registerPush(owner){
     }
 
     // 3. Dapatkan FCM token
-    const token = await fb.getToken(window.__MSG, {
-      vapidKey: window.__VAPID_KEY,
-      serviceWorkerRegistration: swReg
-    });
-    if(!token){ console.warn('No FCM token'); return; }
+    let token;
+    try{
+      token = await fb.getToken(window.__MSG, {
+        vapidKey: window.__VAPID_KEY,
+        serviceWorkerRegistration: swReg
+      });
+    }catch(errTok){
+      console.warn('getToken error:', errTok && errTok.message);
+      try{ toast('Ralat token: '+(errTok&&errTok.message||'unknown'), 'err'); }catch(e){}
+      return;
+    }
+    if(!token){
+      console.warn('No FCM token');
+      try{ toast('Gagal dapat token push. Cuba lagi.', 'err'); }catch(e){}
+      return;
+    }
 
     // 4. Simpan token dalam Firestore (doc id = token supaya auto-dedup)
-    await fsSet('fcmTokens', token, {
-      token,
-      kind:  owner.kind || 'staff',            // 'staff' atau 'coord'
-      rid:   owner.rid  || '',                 // register id staff (kosong utk coord)
-      name:  owner.name || '',
-      role:  owner.role || '',
-      ua:    navigator.userAgent.slice(0,180),
-      enabled:true
-    });
+    try{
+      await fsSet('fcmTokens', token, {
+        token,
+        kind:  owner.kind || 'staff',            // 'staff' atau 'coord'
+        rid:   owner.rid  || '',                 // register id staff (kosong utk coord)
+        name:  owner.name || '',
+        role:  owner.role || '',
+        ua:    navigator.userAgent.slice(0,180),
+        enabled:true
+      });
+    }catch(errSave){
+      console.warn('save token error:', errSave && errSave.message);
+      try{ toast('Gagal simpan token: '+(errSave&&errSave.message||''), 'err'); }catch(e){}
+      return;
+    }
 
     _pushRegistered=true;
     console.log('Push registered ✔ token stored.');
+    try{ toast('Reminder diaktifkan ✔ (token disimpan)', 'ok'); }catch(e){}
 
     // 5. Handler bila app SEDANG BUKA (foreground) — SW tak jalan masa ni
     fb.onMessage(window.__MSG, function(payload){
@@ -1679,8 +1697,8 @@ async function enableNotif(){
   }
   dismissNotifBanner();
   if(_pushOwner){ await registerPush(_pushOwner); }
-  if(Notification.permission==='granted'){ toast('Reminder diaktifkan ✔','ok'); }
-  else if(Notification.permission==='denied'){ toast('Notifikasi disekat. Buka Settings browser utk benarkan.','err'); }
+  // toast status sebenar (berjaya/gagal) dilaporkan dalam registerPush
+  if(Notification.permission==='denied'){ toast('Notifikasi disekat. Buka Settings browser utk benarkan.','err'); }
 }
 const fsDel=(col,id)=>fb&&fb.deleteDoc(fb.doc(fb.db,col,id));
 function listen(col,setter){
