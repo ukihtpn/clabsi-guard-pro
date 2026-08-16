@@ -23,6 +23,8 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, doc, getDoc, setDoc, getDocs, deleteDoc, onSnapshot, serverTimestamp, query, orderBy }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getMessaging, getToken, onMessage }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
   const cfg = {
     apiKey:"AIzaSyD5HCR6QuMS_JSHxRX42Cee9smCWvtpgU8",
     authDomain:"clabsi-htpn.firebaseapp.com",
@@ -34,6 +36,20 @@
   const app = initializeApp(cfg);
   const db  = getFirestore(app);
   window.__FB = { db, collection, doc, getDoc, setDoc, getDocs, deleteDoc, onSnapshot, serverTimestamp, query, orderBy };
+
+  // ── Firebase Cloud Messaging (push notification) ──
+  // messaging cuma boleh init kalau browser sokong SW + Notification
+  try{
+    if('serviceWorker' in navigator && 'Notification' in window){
+      window.__MSG = getMessaging(app);
+      window.__FB.getToken   = getToken;
+      window.__FB.onMessage  = onMessage;
+      // VAPID public key — ISI DARI Firebase Console:
+      // Project Settings > Cloud Messaging > Web Push certificates > Key pair
+      window.__VAPID_KEY = 'BNWqyCgRucpJ4DhpZTzqDyq8hQzYBbD4Z056AIq08ypNB0lmosGlG2HQLUTw3WO3me5EJ-TN5qr-mlW9jDAX1CI';
+    }
+  }catch(e){ console.warn('FCM init skipped:', e && e.message); }
+
   window.__FB_READY = true;
   window.dispatchEvent(new Event('fb-ready'));
 </script>
@@ -669,6 +685,30 @@ input.cgp-rowchk, input#cgp-selectall{
   display:inline-block !important; box-shadow:none !important;
 }
 input#cgp-selectall{ accent-color:#f1c40f !important; border-color:#fff !important; }
+
+/* ── Notification permission banner ── */
+#notif-banner{
+  display:none; position:fixed; left:12px; right:12px; bottom:84px; z-index:9000;
+  background:#fff; border:1px solid #ffe0e0; border-radius:14px; padding:12px 14px;
+  box-shadow:0 8px 30px rgba(192,57,43,.18); align-items:center; gap:12px;
+  max-width:560px; margin:0 auto; animation:nbUp .35s ease;
+}
+#notif-banner.show{ display:flex; }
+@keyframes nbUp{ from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+#notif-banner .nb-ico{ font-size:26px; flex:none; line-height:1 }
+#notif-banner .nb-txt{ flex:1; min-width:0 }
+#notif-banner .nb-title{ font-weight:900; font-size:14px; color:#111; font-family:var(--font-head) }
+#notif-banner .nb-sub{ font-size:11.5px; color:#666; margin-top:2px; line-height:1.35 }
+#notif-banner .nb-btn{
+  flex:none; background:var(--red,#c0392b); color:#fff; border:none; border-radius:9px;
+  padding:9px 16px; font-size:12px; font-weight:800; text-transform:uppercase;
+  letter-spacing:.05em; font-family:var(--font-mono); cursor:pointer; transition:.15s;
+}
+#notif-banner .nb-btn:hover{ filter:brightness(1.08) }
+#notif-banner .nb-x{
+  flex:none; background:none; border:none; font-size:22px; color:#bbb; cursor:pointer;
+  line-height:1; padding:0 2px;
+}
 </style>
 </head>
 <body>
@@ -1023,6 +1063,34 @@ input#cgp-selectall{ accent-color:#f1c40f !important; border-color:#fff !importa
 
 <!-- APP -->
 <div id="app" style="display:none">
+  <!-- ── NOTIFICATION PERMISSION BANNER (Grab/Foodpanda style) ── -->
+  <div id="notif-banner">
+    <div class="nb-ico">🔔</div>
+    <div class="nb-txt">
+      <div class="nb-title">Aktifkan Reminder</div>
+      <div class="nb-sub">Terima notifikasi OSCE &amp; latihan terus ke telefon anda.</div>
+    </div>
+    <button class="nb-btn" onclick="enableNotif()">Aktifkan</button>
+    <button class="nb-x" onclick="dismissNotifBanner()" title="Tutup">&times;</button>
+  </div>
+
+  <!-- ── iOS: kena Add to Home Screen dulu ── -->
+  <div class="overlay" id="mod-ios-push">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-hd red"><h3>Aktifkan di iPhone</h3><button class="modal-close" onclick="cm('mod-ios-push')"><svg><use href="#ic-x"/></svg></button></div>
+      <div style="padding:18px 20px;font-size:13px;line-height:1.65;color:#333">
+        <p style="margin:0 0 12px">iPhone perlu <b>Add to Home Screen</b> dulu sebelum notifikasi boleh keluar (peraturan Apple). Ikut langkah ni:</p>
+        <ol style="margin:0;padding-left:20px">
+          <li style="margin-bottom:8px">Tekan butang <b>Share</b> <span style="display:inline-block;border:1px solid #ccc;border-radius:5px;padding:0 5px">&#x2191;</span> di bawah Safari.</li>
+          <li style="margin-bottom:8px">Pilih <b>Add to Home Screen</b> &#x2795;.</li>
+          <li style="margin-bottom:8px">Buka app dari <b>ikon Home Screen</b> (bukan Safari).</li>
+          <li>Login semula &rarr; tekan <b>Aktifkan</b> bila diminta.</li>
+        </ol>
+        <button class="btn-add-slot" style="margin-top:16px" onclick="cm('mod-ios-push')">Faham</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Sidebar -->
   <nav id="sidebar">
     <div class="sb-top">
@@ -1498,6 +1566,109 @@ window.addEventListener('fb-ready',()=>{
 setTimeout(()=>{ if(!fb){ fsQuestions=getHardcodedQuestions(); showLogin(); } },1000);
 
 const fsSet=(col,id,data)=>fb&&fb.setDoc(fb.doc(fb.db,col,id),{...data,updatedAt:fb.serverTimestamp()});
+
+// ══════════════════════════════════════════════════════════
+// PUSH NOTIFICATION (Firebase Cloud Messaging)
+// ══════════════════════════════════════════════════════════
+let _pushRegistered=false;
+
+// Daftar device utk terima push. owner = {kind:'staff'|'coord', rid, name}
+async function registerPush(owner){
+  try{
+    if(_pushRegistered) return;
+    if(!window.__MSG || !fb) return;              // browser tak sokong / fb belum ready
+    if(!('serviceWorker' in navigator)) return;
+    if(location.protocol!=='https:' && location.hostname!=='localhost') return; // FCM perlu https
+
+    // 1. Minta izin — mesti dari gesture user (login = gesture, ok)
+    const perm = await Notification.requestPermission();
+    if(perm!=='granted'){ console.warn('Push permission:', perm); return; }
+
+    // 2. Daftar service worker di root
+    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+    // 3. Dapatkan FCM token
+    const token = await fb.getToken(window.__MSG, {
+      vapidKey: window.__VAPID_KEY,
+      serviceWorkerRegistration: swReg
+    });
+    if(!token){ console.warn('No FCM token'); return; }
+
+    // 4. Simpan token dalam Firestore (doc id = token supaya auto-dedup)
+    await fsSet('fcmTokens', token, {
+      token,
+      kind:  owner.kind || 'staff',            // 'staff' atau 'coord'
+      rid:   owner.rid  || '',                 // register id staff (kosong utk coord)
+      name:  owner.name || '',
+      role:  owner.role || '',
+      ua:    navigator.userAgent.slice(0,180),
+      enabled:true
+    });
+
+    _pushRegistered=true;
+    console.log('Push registered ✔ token stored.');
+
+    // 5. Handler bila app SEDANG BUKA (foreground) — SW tak jalan masa ni
+    fb.onMessage(window.__MSG, function(payload){
+      const d = payload.data || (payload.notification||{});
+      try{ toast((d.title?d.title+': ':'')+(d.body||'Reminder'), 'ok'); }catch(e){}
+      // papar juga notif OS kalau izin ada
+      if(Notification.permission==='granted'){
+        new Notification(d.title||'CLABSI Guard Pro', { body:d.body||'', icon:'/icon-192.png' });
+      }
+    });
+  }catch(e){
+    console.warn('registerPush failed:', e && e.message);
+  }
+}
+
+// ── Banner izin (Grab/Foodpanda style) ────────────────────
+let _pushOwner=null;   // simpan owner utk dipakai bila user tekan Aktifkan
+
+function isIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+}
+function isStandalone(){   // dah "Add to Home Screen"?
+  return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true;
+}
+
+// Panggil selepas login. Tentukan sama ada nak tunjuk banner.
+function maybeShowNotifBanner(owner){
+  _pushOwner=owner;
+  // browser langsung tak sokong
+  if(!('Notification' in window) || !window.__MSG){ return; }
+  // dah bagi izin sebelum ni → terus daftar senyap, tak payah banner
+  if(Notification.permission==='granted'){ registerPush(owner); return; }
+  // user pernah tekan "Jangan tunjuk" hari ni → hormat
+  const snoozed=localStorage.getItem('cgp8:notifSnooze');
+  if(snoozed && (Date.now()-Number(snoozed) < 86400000)) return;  // 24 jam
+  // kalau user dah block → jangan ganggu
+  if(Notification.permission==='denied') return;
+  // tunjuk banner
+  const b=document.getElementById('notif-banner');
+  if(b){ b.classList.add('show'); }
+}
+
+function dismissNotifBanner(){
+  const b=document.getElementById('notif-banner');
+  if(b) b.classList.remove('show');
+  try{ localStorage.setItem('cgp8:notifSnooze', String(Date.now())); }catch(e){}
+}
+
+// Bila user tekan "Aktifkan"
+async function enableNotif(){
+  // iPhone dalam Safari biasa (belum add to home screen) → tunjuk arahan
+  if(isIOS() && !isStandalone()){
+    dismissNotifBanner();
+    om('mod-ios-push');
+    return;
+  }
+  dismissNotifBanner();
+  if(_pushOwner){ await registerPush(_pushOwner); }
+  if(Notification.permission==='granted'){ toast('Reminder diaktifkan ✔','ok'); }
+  else if(Notification.permission==='denied'){ toast('Notifikasi disekat. Buka Settings browser utk benarkan.','err'); }
+}
 const fsDel=(col,id)=>fb&&fb.deleteDoc(fb.doc(fb.db,col,id));
 function listen(col,setter){
   if(!fb)return;
@@ -2240,6 +2411,13 @@ function enter(role,staffObj){
   var _aiBtn=document.getElementById('bn-clabsiai');
   if(_aiBtn) _aiBtn.style.display=(role==='staff')?'':'none';
   listenAll();
+
+  // ── Daftar push notification (staff & coordinator) ──
+  if(role==='staff' && staffObj){
+    maybeShowNotifBanner({ kind:'staff', rid:(staffObj.registerId||''), name:staffObj.name||'', role:staffObj.role||'' });
+  } else if(role==='admin'){
+    maybeShowNotifBanner({ kind:'coord', rid:'', name:'Coordinator', role:'coordinator' });
+  }
 
   if(role==='staff'&&fb&&staffObj&&staffObj.registerId){
     const rid=normalizeRid(String(staffObj.registerId));
