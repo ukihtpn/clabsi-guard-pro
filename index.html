@@ -694,26 +694,26 @@ input#cgp-selectall{ accent-color:#f1c40f !important; border-color:#fff !importa
 
 /* ── Notification permission banner ── */
 #notif-banner{
-  display:none; position:fixed; left:12px; right:12px; bottom:84px; z-index:9000;
-  background:#fff; border:1px solid #ffe0e0; border-radius:14px; padding:12px 14px;
-  box-shadow:0 8px 30px rgba(192,57,43,.18); align-items:center; gap:12px;
-  max-width:560px; margin:0 auto; animation:nbUp .35s ease;
+  display:none; position:fixed; left:12px; right:12px; top:12px; z-index:9000;
+  background:linear-gradient(135deg,#ffd400,#f5b800); border:2px solid #111; border-radius:14px;
+  padding:13px 15px; box-shadow:0 8px 30px rgba(0,0,0,.35); align-items:center; gap:12px;
+  max-width:560px; margin:0 auto; animation:nbDown .35s ease;
 }
 #notif-banner.show{ display:flex; }
-@keyframes nbUp{ from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
-#notif-banner .nb-ico{ font-size:26px; flex:none; line-height:1 }
+@keyframes nbDown{ from{transform:translateY(-24px);opacity:0} to{transform:translateY(0);opacity:1} }
+#notif-banner .nb-ico{ font-size:28px; flex:none; line-height:1 }
 #notif-banner .nb-txt{ flex:1; min-width:0 }
-#notif-banner .nb-title{ font-weight:900; font-size:14px; color:#111; font-family:var(--font-head) }
-#notif-banner .nb-sub{ font-size:11.5px; color:#666; margin-top:2px; line-height:1.35 }
+#notif-banner .nb-title{ font-weight:900; font-size:15px; color:#111; font-family:var(--font-head) }
+#notif-banner .nb-sub{ font-size:12px; color:#3a2f00; margin-top:2px; line-height:1.35; font-weight:600 }
 #notif-banner .nb-btn{
-  flex:none; background:var(--red,#c0392b); color:#fff; border:none; border-radius:9px;
-  padding:9px 16px; font-size:12px; font-weight:800; text-transform:uppercase;
+  flex:none; background:#111; color:#ffd400; border:none; border-radius:9px;
+  padding:10px 18px; font-size:13px; font-weight:800; text-transform:uppercase;
   letter-spacing:.05em; font-family:var(--font-mono); cursor:pointer; transition:.15s;
 }
-#notif-banner .nb-btn:hover{ filter:brightness(1.08) }
+#notif-banner .nb-btn:hover{ background:#000 }
 #notif-banner .nb-x{
-  flex:none; background:none; border:none; font-size:22px; color:#bbb; cursor:pointer;
-  line-height:1; padding:0 2px;
+  flex:none; background:none; border:none; font-size:22px; color:#111; cursor:pointer;
+  line-height:1; padding:0 2px; opacity:.6;
 }
 </style>
 </head>
@@ -1073,26 +1073,26 @@ input#cgp-selectall{ accent-color:#f1c40f !important; border-color:#fff !importa
   <div id="notif-banner">
     <div class="nb-ico">🔔</div>
     <div class="nb-txt">
-      <div class="nb-title">Aktifkan Reminder</div>
-      <div class="nb-sub">Terima notifikasi OSCE &amp; latihan terus ke telefon anda.</div>
+      <div class="nb-title">Enable Reminders</div>
+      <div class="nb-sub">Get OSCE &amp; training alerts sent straight to your phone.</div>
     </div>
-    <button class="nb-btn" onclick="enableNotif()">Aktifkan</button>
-    <button class="nb-x" onclick="dismissNotifBanner()" title="Tutup">&times;</button>
+    <button class="nb-btn" onclick="enableNotif()">Enable</button>
+    <button class="nb-x" onclick="dismissNotifBanner()" title="Close">&times;</button>
   </div>
 
   <!-- ── iOS: kena Add to Home Screen dulu ── -->
   <div class="overlay" id="mod-ios-push">
     <div class="modal" style="max-width:380px">
-      <div class="modal-hd red"><h3>Aktifkan di iPhone</h3><button class="modal-close" onclick="cm('mod-ios-push')"><svg><use href="#ic-x"/></svg></button></div>
+      <div class="modal-hd red"><h3>Enable on iPhone</h3><button class="modal-close" onclick="cm('mod-ios-push')"><svg><use href="#ic-x"/></svg></button></div>
       <div style="padding:18px 20px;font-size:13px;line-height:1.65;color:#333">
-        <p style="margin:0 0 12px">iPhone perlu <b>Add to Home Screen</b> dulu sebelum notifikasi boleh keluar (peraturan Apple). Ikut langkah ni:</p>
+        <p style="margin:0 0 12px">iPhone requires <b>Add to Home Screen</b> before notifications can work (Apple's rule). Follow these steps:</p>
         <ol style="margin:0;padding-left:20px">
-          <li style="margin-bottom:8px">Tekan butang <b>Share</b> <span style="display:inline-block;border:1px solid #ccc;border-radius:5px;padding:0 5px">&#x2191;</span> di bawah Safari.</li>
-          <li style="margin-bottom:8px">Pilih <b>Add to Home Screen</b> &#x2795;.</li>
-          <li style="margin-bottom:8px">Buka app dari <b>ikon Home Screen</b> (bukan Safari).</li>
-          <li>Login semula &rarr; tekan <b>Aktifkan</b> bila diminta.</li>
+          <li style="margin-bottom:8px">Tap the <b>Share</b> <span style="display:inline-block;border:1px solid #ccc;border-radius:5px;padding:0 5px">&#x2191;</span> button in Safari.</li>
+          <li style="margin-bottom:8px">Choose <b>Add to Home Screen</b> &#x2795;.</li>
+          <li style="margin-bottom:8px">Open the app from the <b>Home Screen icon</b> (not Safari).</li>
+          <li>Log in again &rarr; tap <b>Enable</b> when prompted.</li>
         </ol>
-        <button class="btn-add-slot" style="margin-top:16px" onclick="cm('mod-ios-push')">Faham</button>
+        <button class="btn-add-slot" style="margin-top:16px" onclick="cm('mod-ios-push')">Got it</button>
       </div>
     </div>
   </div>
@@ -1615,12 +1615,12 @@ async function registerPush(owner){
       });
     }catch(errTok){
       console.warn('getToken error:', errTok && errTok.message);
-      try{ toast('Ralat token: '+(errTok&&errTok.message||'unknown'), 'err'); }catch(e){}
+      try{ toast('Token error: '+(errTok&&errTok.message||'unknown'), 'err'); }catch(e){}
       return;
     }
     if(!token){
       console.warn('No FCM token');
-      try{ toast('Gagal dapat token push. Cuba lagi.', 'err'); }catch(e){}
+      try{ toast('Failed to get push token. Try again.', 'err'); }catch(e){}
       return;
     }
 
@@ -1637,13 +1637,13 @@ async function registerPush(owner){
       });
     }catch(errSave){
       console.warn('save token error:', errSave && errSave.message);
-      try{ toast('Gagal simpan token: '+(errSave&&errSave.message||''), 'err'); }catch(e){}
+      try{ toast('Failed to save token: '+(errSave&&errSave.message||''), 'err'); }catch(e){}
       return;
     }
 
     _pushRegistered=true;
     console.log('Push registered ✔ token stored.');
-    try{ toast('Reminder diaktifkan ✔ (token disimpan)', 'ok'); }catch(e){}
+    try{ toast('Reminders enabled ✔', 'ok'); }catch(e){}
 
     // 5. Handler bila app SEDANG BUKA (foreground) — SW tak jalan masa ni
     fb.onMessage(window.__MSG, function(payload){
@@ -1704,7 +1704,7 @@ async function enableNotif(){
   dismissNotifBanner();
   if(_pushOwner){ await registerPush(_pushOwner); }
   // toast status sebenar (berjaya/gagal) dilaporkan dalam registerPush
-  if(Notification.permission==='denied'){ toast('Notifikasi disekat. Buka Settings browser utk benarkan.','err'); }
+  if(Notification.permission==='denied'){ toast('Notifications blocked. Enable them in browser Settings.','err'); }
 }
 const fsDel=(col,id)=>fb&&fb.deleteDoc(fb.doc(fb.db,col,id));
 function listen(col,setter){
