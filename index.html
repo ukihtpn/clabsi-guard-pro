@@ -1130,6 +1130,16 @@ input#cgp-selectall{ accent-color:#f1c40f !important; border-color:#fff !importa
         <p>CLABSI Guard Pro · Hospital Tengku Permaisuri Norashikin</p>
         <p style="font-size:9px;color:rgba(255,255,255,.35);font-family:var(--font-mono);font-weight:700;margin-top:1px;letter-spacing:.05em">© Dr. Aneesa Tharek · IPC Unit HTPN</p>
       </div>
+      <!-- ADD-ON (fix): moved here from a fixed floating button at the bottom
+           of the screen (was overlapping bottom-nav on some devices). #ph
+           already lays out with justify-content:space-between, so sitting as
+           a normal second child here puts it top-right of the page header —
+           no position:fixed, so it can never float over the bottom-nav or
+           any modal again. Same id, same onclick — togglePrivacyMask() and
+           updateEye() just do getElementById('privacy-eye') each time, so
+           moving its markup doesn't change how it behaves. -->
+      <button id="privacy-eye" title="Tap to hide staff names" onclick="togglePrivacyMask()"
+        style="flex-shrink:0;width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;background:rgba(0,0,0,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;transition:.2s">👁</button>
     </div>
     <div id="pg-dashboard" class="page active"></div>
     <div id="pg-training"  class="page"></div>
@@ -8186,9 +8196,15 @@ function openOsceGuide(){
   if(existing){existing.remove();return;}
   var ov=document.createElement('div');
   ov.id='osce-guide-lightbox';
-  ov.setAttribute('style','position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto');
+  // ADD-ON (fix): was align-items:center — with a tall image + overflow:auto,
+  // centering makes the TOP of the image render above the scrollable area, so
+  // it's cut off and unreachable no matter how far you scroll (classic flex
+  // "tall content gets clipped above the fold" trap). align-items:flex-start
+  // makes the image start at the top of the overlay, so scrolling down always
+  // reaches the very bottom — the whole picture becomes visible.
+  ov.setAttribute('style','position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.9);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto');
   ov.onclick=function(){ov.remove();};
-  ov.innerHTML='<img src="'+OSCE_FLOW_IMG+'" alt="OSCE process flow" style="max-width:100%;height:auto;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.5)">'
+  ov.innerHTML='<img src="'+OSCE_FLOW_IMG+'" alt="OSCE process flow" style="max-width:100%;height:auto;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.5);margin:auto">'
     +'<button onclick="var e=document.getElementById(\'osce-guide-lightbox\');if(e)e.remove();" style="position:fixed;top:14px;right:14px;width:40px;height:40px;border-radius:999px;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:22px;font-weight:700;cursor:pointer;line-height:1">&times;</button>';
   document.body.appendChild(ov);
 }
@@ -9906,10 +9922,9 @@ function goToClabsiRun(){
      PRIVACY MASK (presentation mode) — display-only, no logic touched.
      Eye button hides real staff names for competition demos.
      Whitelisted demo names stay visible: Aneesa, Adam Noah, Yusuf.
+     Button markup itself now lives up in #ph (top of the page header) —
+     see near <h1 id="ph-title"> — instead of floating fixed at the bottom.
      ══════════════════════════════════════════════════════════════ -->
-<button id="privacy-eye" title="Hide/show staff names"
-  style="position:fixed;right:16px;bottom:78px;z-index:99999;width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;background:#1a1a2e;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:22px;transition:.2s"
-  onclick="togglePrivacyMask()">👁</button>
 <script>
 (function(){
   // Names that must ALWAYS stay visible (the dummy accounts shown on stage).
