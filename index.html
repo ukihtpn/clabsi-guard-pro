@@ -21,7 +21,7 @@
 <!-- Inline SVG icons — no CDN needed -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, doc, getDoc, setDoc, getDocs, deleteDoc, onSnapshot, serverTimestamp, query, orderBy }
+  import { getFirestore, collection, doc, getDoc, setDoc, getDocs, deleteDoc, onSnapshot, serverTimestamp, query, orderBy, runTransaction }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getMessaging, getToken, onMessage }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
@@ -35,7 +35,7 @@
   };
   const app = initializeApp(cfg);
   const db  = getFirestore(app);
-  window.__FB = { db, collection, doc, getDoc, setDoc, getDocs, deleteDoc, onSnapshot, serverTimestamp, query, orderBy };
+  window.__FB = { db, collection, doc, getDoc, setDoc, getDocs, deleteDoc, onSnapshot, serverTimestamp, query, orderBy, runTransaction };
 
   // ── Firebase Cloud Messaging (push notification) ──
   // messaging cuma boleh init kalau browser sokong SW + Notification
@@ -1478,6 +1478,49 @@ function autoGenerateRegisterId(role){
   });
   let n=1; while(used.has(n))n++; return prefix+n;
 }
+// ── ADD-ON (fix): atomic Register ID claim ──────────────
+// autoGenerateRegisterId() above picks the lowest free number purely from the
+// staff list already loaded in this browser tab. If two staff register at
+// almost the same moment (two different phones/devices), both tabs can read
+// the same "lowest free number" (e.g. SN3) BEFORE either one's new staff
+// record is saved — so both end up issued the same Register ID. This is the
+// "already got SN3 but system still gives SN3" bug.
+// Fix: use a Firestore transaction to atomically "claim" the candidate ID in
+// a small ledger collection ('registerIds') before handing it out. A
+// transaction guarantees only ONE concurrent caller can successfully claim a
+// given ID, even across devices — the second caller's transaction sees the
+// ID already claimed and moves on to the next number. Does not touch/replace
+// autoGenerateRegisterId(), which stays as the offline (no-Firebase) fallback.
+async function claimRegisterId(role){
+  if(!fb||!fb.runTransaction) return autoGenerateRegisterId(role); // offline: no cross-device race possible
+  const prefix=role==='Staff Nurse'?'SN':role==='HO'?'HO':'MO';
+  const allStaff=staff();
+  const used=new Set();
+  allStaff.forEach(function(s){
+    const rid=normalizeRid(s.registerId||'');
+    if(rid.startsWith(prefix)){const num=parseInt(rid.slice(prefix.length));if(!isNaN(num)&&num>0)used.add(num);}
+  });
+  let n=1;
+  for(let attempt=0;attempt<200;attempt++){
+    while(used.has(n))n++;
+    const candidate=prefix+n;
+    try{
+      const claimed=await fb.runTransaction(fb.db,async function(tx){
+        const ref=fb.doc(fb.db,'registerIds',candidate);
+        const snap=await tx.get(ref);
+        if(snap.exists())return false;
+        tx.set(ref,{registerId:candidate,role:role,claimedAt:fb.serverTimestamp()});
+        return true;
+      });
+      if(claimed)return candidate;
+      used.add(n);n++; // someone else just claimed it — try the next number
+    }catch(e){
+      console.warn('claimRegisterId: transaction failed, using best-effort ID instead:',e&&e.message);
+      return candidate; // never block registration — fall back to the computed candidate
+    }
+  }
+  return prefix+n;
+}
 function normalizeRid(rid){
   if(!rid) return rid;
   var s=String(rid).trim().toUpperCase();
@@ -2045,6 +2088,10 @@ function renderLogin(){
       <div style="margin-top:11px;display:flex;justify-content:center;gap:14px;flex-wrap:wrap">
         <button onclick="showRegister()" style="background:none;border:none;font-size:10px;color:#27ae60;font-family:var(--font-mono);font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;text-decoration:underline">Register New Account</button>
         <button onclick="showReset()" style="background:none;border:none;font-size:10px;color:#2980b9;font-family:var(--font-mono);font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;text-decoration:underline">Forgot Password?</button>
+      </div>
+      <!-- ADD-ON: help link for staff who still can't log in / forgot password -->
+      <div style="margin-top:9px;text-align:center">
+        <a href="${waHelpLink()}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#25d366;font-family:var(--font-mono);font-weight:700;text-decoration:none">📱 Masalah log masuk? WhatsApp UKI</a>
       </div>`;
     setTimeout(()=>{
       const i=document.getElementById('staff-regid');
@@ -2204,7 +2251,7 @@ async function doRegister(){
   if(fb){try{const snap=await fb.getDocs(fb.collection(fb.db,'staff'));const fresh=snap.docs.map(d=>({...d.data(),_fsId:d.id}));if(fresh.length){fsStaff=fresh;localStaff=fresh;localStorage.setItem('cgp8:staff',JSON.stringify(fresh));}}catch(e){}}
   const allStaff=staff();
   if(allStaff.find(s=>s.ic&&s.ic===ic)){errEl.textContent='An account with this IC number already exists.';return;}
-  const rid=autoGenerateRegisterId(role);
+  const rid=await claimRegisterId(role); // ADD-ON (fix): atomic claim — prevents 2 staff getting the same ID
   try{localStorage.setItem('cgp8:prefillRid',rid);localStorage.setItem('cgp8:lastRid',rid);}catch(e){}
   const id='s'+Date.now();
   const _consChoice=(function(){try{return localStorage.getItem('cgp8:regConsent')||'agree';}catch(e){return 'agree';}})();
@@ -2272,7 +2319,11 @@ function showReset(){
       <input class="pw-inp" id="rst-pw2" type="password" placeholder="Re-enter new password" maxlength="20" autocomplete="new-password">
     </div>
     <div class="pw-err" id="rst-err"></div>
-    <button style="width:100%;padding:13px;border-radius:11px;font-weight:900;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#fff;background:#2980b9;border:none;cursor:pointer;margin-top:8px" onclick="doReset()">Set New Password</button>`;
+    <button style="width:100%;padding:13px;border-radius:11px;font-weight:900;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#fff;background:#2980b9;border:none;cursor:pointer;margin-top:8px" onclick="doReset()">Set New Password</button>
+    <!-- ADD-ON: help link if staff don't remember their Register ID/IC either -->
+    <div style="margin-top:10px;text-align:center">
+      <a href="${waHelpLink()}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#25d366;font-family:var(--font-mono);font-weight:700;text-decoration:none">📱 Tak ingat Register ID / IC? WhatsApp UKI</a>
+    </div>`;
 }
 
 async function doReset(){
@@ -4286,6 +4337,12 @@ function waPhone(phone){
   const ph=String(phone||'').replace(/[^0-9]/g,'');
   return ph.startsWith('0')?'6'+ph:ph;
 }
+// ADD-ON: UKI contact WhatsApp link — staff having trouble logging in or
+// resetting their password (per UKI request) tap this to message UKI directly.
+function waHelpLink(){
+  const msg='Hai UKI, saya menghadapi masalah log masuk / lupa kata laluan CLABSI Guard Pro. Boleh bantu?';
+  return 'https://wa.me/'+waPhone('0137386497')+'?text='+encodeURIComponent(msg);
+}
 function copyCertLink(link){
   if(navigator.clipboard){navigator.clipboard.writeText(link).then(()=>toast('Certificate link copied! ✓')).catch(()=>fallbackCopy(link));}
   else fallbackCopy(link);
@@ -4420,10 +4477,13 @@ function staffSearchInput(val){
   },250);
 }
 // ── ADD-ON (Uki): status lifecycle staff → warna row + urutan sort ──
-function _cgpLC(s){
+// ADD-ON (fix): accepts optional pre-parsed qr/slots so callers that already
+// have them (renderDashboard) don't re-parse the whole localStorage blob on
+// every single staff row/comparison — see call sites for why that mattered.
+function _cgpLC(s,_qrPre,_slotsPre){
   var out={bg:'#fee2e2',band:'#dc2626',rank:3};
   try{
-    var qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
+    var qr=_qrPre||JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
     var rid=normalizeRid(s.registerId||'');
     var ridO=String(s.registerId||'').trim().toUpperCase();
     var mods=(typeof THEORY_MODULES!=='undefined'&&THEORY_MODULES.length)?THEORY_MODULES:[{num:1},{num:2},{num:3},{num:4}];
@@ -4435,7 +4495,7 @@ function _cgpLC(s){
     // Ada book OSCE? (dari slots atau osceDate)
     var booked=false;
     try{
-      var slots=JSON.parse(localStorage.getItem('cgp8:slots')||'[]');
+      var slots=_slotsPre||JSON.parse(localStorage.getItem('cgp8:slots')||'[]');
       booked=slots.some(function(b){return b&&b.status==='Booked'&&normalizeRid(b.bookedRegisterId||b.registerId||'')===rid;})||!!s.osceDate;
     }catch(e){ booked=!!s.osceDate; }
     if(passed&&theoryDone)          out={bg:'#dcfce7',band:'#16a34a',rank:0}; // hijau: competent
@@ -4460,6 +4520,14 @@ function renderDashboard(){
   const pct=total?Math.round(comp/total*100):0;
   const srch=(document.getElementById('srch-staff')||{}).value||'';
   const roleFilter=window._roleFilter||'All';
+  // ADD-ON (fix): parse these two localStorage blobs ONCE per render instead
+  // of once per staff row (was happening 2-3x per row inside the table map,
+  // PLUS twice per comparison during the sort below — for ~50-100+ staff that
+  // adds up to hundreds of JSON.parse() calls on the same data every time you
+  // type a letter in Search, which is what was making the staff list feel
+  // laggy/stuck while searching. Reused below via _cgpLC(s,_qrAll,_slotsAll).
+  const _qrAll=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
+  const _slotsAll=JSON.parse(localStorage.getItem('cgp8:slots')||'[]');
 
   // Staff sees only their own record; admin sees all with search + role filter
   let filt;
@@ -4473,7 +4541,7 @@ function renderDashboard(){
     if(roleFilter!=='All') filt=filt.filter(s=>s.role===roleFilter);
     // ADD-ON (Uki): susun — competent → theory done → separa → belum start, pastu nama A-Z
     filt=filt.slice().sort(function(a,b){
-      var ra=_cgpLC(a).rank, rb=_cgpLC(b).rank;
+      var ra=_cgpLC(a,_qrAll,_slotsAll).rank, rb=_cgpLC(b,_qrAll,_slotsAll).rank;
       if(ra!==rb) return ra-rb;
       return String(a.name||'').localeCompare(String(b.name||''));
     });
@@ -5098,7 +5166,9 @@ function renderDashboard(){
           </tr></thead>
           <tbody>
             ${filt.length?filt.map(s=>{
-              const _qr=JSON.parse(localStorage.getItem('cgp8:quizresults')||'{}');
+              // ADD-ON (fix): reuse the once-per-render _qrAll/_slotsAll parsed
+              // above instead of re-parsing localStorage for every row.
+              const _qr=_qrAll;
               const _rid=normalizeRid(s.registerId||'');
               const _ridOrig=String(s.registerId||'').trim().toUpperCase();
               // Check both normalized and original key in fsQRCache
@@ -5114,16 +5184,19 @@ function renderDashboard(){
               const _loginTxt=_lastLogin?new Date(_lastLogin).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):_updAt?('~'+new Date(_updAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})):'Never';
               const _loginCol=_lastLogin?'#374151':_updAt?'#9ca3af':'#d1d5db';
               // OSCE booking date
-              const _allSlots=JSON.parse(localStorage.getItem('cgp8:slots')||'[]');
+              const _allSlots=_slotsAll;
               const _mySlot=_allSlots.find(function(b){return b&&b.status==='Booked'&&(normalizeRid(b.bookedRegisterId||b.registerId||'')===_rid||normalizeRid(b.bookedRegisterId||b.registerId||'')===String(s.registerId||'').toUpperCase());});
               const _osceManual=s.osceDate||'';
               const _osceDateTxt=_osceManual
                 ?new Date(_osceManual+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+(s.osceTime?' · '+s.osceTime:'')
                 :(_mySlot?new Date(_mySlot.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+(_mySlot.time?' · '+_mySlot.time:''):'—');
               const _osceCol=(_osceManual||_mySlot)?'#166534':'#d1d5db';
+              // ADD-ON (fix): compute once per row instead of 2x (was calling
+              // _cgpLC(s) separately for the row background AND the dot color).
+              const _lc=_cgpLC(s,_qrAll,_slotsAll);
               return `
-              <tr${userRole==='admin'?(!s.registerId?' style="background:#fffbeb"':' style="background:'+_cgpLC(s).bg+';box-shadow:inset 5px 0 0 0 '+_cgpLC(s).band+'"'):''}>
-                <td class="name-cell">${userRole==='admin'?'<input type="checkbox" class="cgp-rowchk" data-id="'+(s._fsId||s.id)+'" onclick="event.stopPropagation();_cgpUpdateBulkBar()" style="width:17px;height:17px;cursor:pointer;vertical-align:middle;margin-right:8px;accent-color:#dc2626;appearance:auto;-webkit-appearance:checkbox;border:1.5px solid #64748b;border-radius:3px;flex:none">':''}${userRole==='admin'?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;background:'+_cgpLC(s).band+'"></span>':''}${s.name}</td>
+              <tr${userRole==='admin'?(!s.registerId?' style="background:#fffbeb"':' style="background:'+_lc.bg+';box-shadow:inset 5px 0 0 0 '+_lc.band+'"'):''}>
+                <td class="name-cell">${userRole==='admin'?'<input type="checkbox" class="cgp-rowchk" data-id="'+(s._fsId||s.id)+'" onclick="event.stopPropagation();_cgpUpdateBulkBar()" style="width:17px;height:17px;cursor:pointer;vertical-align:middle;margin-right:8px;accent-color:#dc2626;appearance:auto;-webkit-appearance:checkbox;border:1.5px solid #64748b;border-radius:3px;flex:none">':''}${userRole==='admin'?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;background:'+_lc.band+'"></span>':''}${s.name}</td>
                 <td class="role-cell">${s.role}</td>
                 ${userRole==='admin'?`
                 <td><span style="font-family:var(--font-mono);font-size:12px;font-weight:700;background:${s.registerId?'#f0f0f0':'#fee2e2'};color:${s.registerId?'#111':'#991b1b'};padding:3px 8px;border-radius:6px;">${s.registerId||'⚠ No ID'}</span></td>
@@ -6133,6 +6206,10 @@ async function delStaff(id,_opts){
         return Promise.all(cdels);
       }).catch(function(){})
     );
+    // ADD-ON (fix): release the claimed Register ID so it goes back into the
+    // free pool for claimRegisterId() — matches the existing "IDs get reused
+    // after delete" behavior (see autoGenerateRegisterId reuse note below).
+    if(rid) delPromises.push(fsDel('registerIds',rid).catch(function(){}));
     // OSCE slot bookings — release (don't delete) any slot this staff had booked,
     // so the trainer/date/time slot itself survives but goes back to Available.
     // Without this, the slot keeps bookedRegisterId pointing at this ID, and if
